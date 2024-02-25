@@ -50,6 +50,7 @@ async def parse_event_melkweg(show, session, url):
                     'subtitle': subtitle,
                     'support': support,
                     'date': datetime.fromisoformat(event_soup.time.get('datetime').replace('Z', '+00:00')),
+                    'location': str(event_soup.find_all(class_='styles_event-header__location__jvvG4')[0].get_text(strip=False) + ', Melkweg, Amsterdam, NL'),
                     'tags': show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else '',
                     'url': url,
                     }
