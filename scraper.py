@@ -52,8 +52,8 @@ async def parse_event_013(show, session, url):
         data = {
                 # 013 has loads of flags
                 'id': '-'.join(show.get('url').split('/')[2:]),
-                'artist': show.get('title'),
-                'subtitle': show.get('subTitle') if show.get('subTitle') else show.get('mobileEventDescription'),
+                'artist': str(show.get('title')),
+                'subtitle': str(show.get('subTitle') if show.get('subTitle') else show.get('mobileEventDescription')),
                 'support': show.get('supportActs'),
                 'date': datetime.fromisoformat(show.get('dates').get('startsAt')),
                 'location': str(event_data.get('location').get('name') + ', Tilburg, NL'), # 013's in house events contain a full location name in the JSON, so mentioning the venue is pointless
@@ -85,18 +85,18 @@ async def parse_event_melkweg(show, session, url):
                 if len(support_line.split(': ')) == 2:
                     acts = support_line.split(': ')[-1]
                     support = acts.split(determine_separator(acts))
-                else: support = ''
-            else: support = ''
+                else: support = []
+            else: support = []
 
             # Combine all data in dictionary
             data = {
                     'id': url.split('/')[-2],
-                    'artist': show.h3.get_text(strip=True),
-                    'subtitle': subtitle,
+                    'artist': str(show.h3.get_text(strip=True)),
+                    'subtitle': str(subtitle),
                     'support': support,
                     'date': datetime.fromisoformat(event_soup.time.get('datetime').replace('Z', '+00:00')),
                     'location': str(event_soup.find(class_='styles_event-header__location__jvvG4').get_text(strip=False) + ', Melkweg, Amsterdam, NL'),
-                    'tags': show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else '',
+                    'tags': show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else [],
                     'url': url,
                     }
 
