@@ -6,6 +6,8 @@ from datetime import datetime
 from urllib.parse import urljoin
 import json
 import logging
+import constants
+import html
 
 logging.basicConfig(filename='test.log', encoding='utf-8', level=logging.DEBUG)
 
@@ -49,17 +51,39 @@ async def parse_event_013(show, session, url):
         for tag in show.get('genres'): # 013's genre tags are nested
             tags.append(tag.get('title'))
 
+        def check_ticket_status(show):
+            try:
+                flags = show.get('flags')
+                if flags.get('soldOut'):
+                    return 'SOLD_OUT'
+                elif flags.get('fewTicketsAvailable'):
+                    return 'FEW_TICKETS'
+                elif flags.get('saleStarted'):
+                    return 'SALE_LIVE'
+                elif not flags.get('saleStarted'):
+                    return 'SALE_NOT_LIVE'
+                elif flags.get('cancelled'):
+                    return 'CANCELLED'
+                else:
+                    return 'UNKNOWN'
+            except Exception as e:
+                logging.warning(f'Ticket status could not be checked for {full_url}: {e}')
+                print(f'Ticket status could not be checked for {full_url}: {e}')
+                return 'UNKNOWN'
+
         data = {
                 # 013 has loads of flags
                 'id': '-'.join(show.get('url').split('/')[2:]),
-                'artist': str(show.get('title')),
-                'subtitle': str(show.get('subTitle') if show.get('subTitle') else show.get('mobileEventDescription')),
+                'artist': html.unescape(str(show.get('title'))),
+                'subtitle': html.unescape(str(show.get('subTitle') if show.get('subTitle') else show.get('mobileEventDescription'))),
                 'support': show.get('supportActs'),
                 'date': datetime.fromisoformat(show.get('dates').get('startsAt')),
                 'location': str(event_data.get('location').get('name') + ', Tilburg, NL'), # 013's in house events contain a full location name in the JSON, so mentioning the venue is pointless
                 'tags': tags,
+                'ticket_status': constants.TICKET_STATUS[check_ticket_status(show)],
                 'url': full_url,
-                'venue_id': '013_nl'
+                'venue_id': '013_nl',
+                'last_check': datetime.now(),
                 }
 
         return data
@@ -69,6 +93,26 @@ async def parse_event_013(show, session, url):
 
 async def parse_event_melkweg(show, session, url):
     try:
+        def check_ticket_status(show):
+            try:
+                event_label = show.find(class_='styles_label__p9pQy')
+                if event_label and event_label.get_text(strip=True).lower() == 'sold out':
+                    return 'SOLD_OUT'
+                # elif flags.get('fewTicketsAvailable'): # Does not seem to exist for Melkweg
+                    # return 'FEW_TICKETS'
+                # elif flags.get('saleStarted'): # Does not seem to exist. Currently, if it is online, it is for sale. Keep an eye on this.
+                    # return 'SALE_LIVE'
+                # elif not flags.get('saleStarted'):
+                    # return 'SALE_NOT_LIVE'
+                elif event_label and event_label.get_text(strip=True).lower() == 'cancelled':
+                    return 'CANCELLED'
+                else:
+                    return 'SALE_LIVE' # This is true, for now.
+            except Exception as e:
+                logging.warning(f'Ticket status could not be checked for {url}: {e}')
+                print(f'Ticket status could not be checked for {url}: {e}')
+                return 'UNKNOWN'
+        
         tag_sep = '·' # Separator for genre tags
         event_type = show.find(class_='styles_event-compact__type-item__RPgGU') # Find event type
         if event_type and (event_type.span.get_text(strip=True).lower() in ['concert', 'club', 'festival']): # Filter event types (excluding expositions and cinema)
@@ -89,6 +133,7 @@ async def parse_event_melkweg(show, session, url):
                 else: support = []
             else: support = []
 
+        
             # Combine all data in dictionary
             data = {
                     'id': url.split('/')[-2],
@@ -98,8 +143,10 @@ async def parse_event_melkweg(show, session, url):
                     'date': datetime.fromisoformat(event_soup.time.get('datetime').replace('Z', '+00:00')),
                     'location': str(event_soup.find(class_='styles_event-header__location__jvvG4').get_text(strip=False) + ', Melkweg, Amsterdam, NL'),
                     'tags': show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else [],
+                    'ticket_status': constants.TICKET_STATUS[check_ticket_status(show)],
                     'url': url,
-                    'venue_id': 'melkweg_nl'
+                    'venue_id': 'melkweg_nl',
+                    'last_check': datetime.now(),
                     }
 
             return data
