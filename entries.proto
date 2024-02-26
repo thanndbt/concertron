@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+message EventTags {
+	repeated string tags = 1;
+}
+
+message SupportActs {
+	repeated string tags = 1;
+}
