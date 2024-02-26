@@ -1,13 +1,14 @@
 import asyncio
 import aiohttp
 from bs4 import BeautifulSoup
-import pandas as pd
 from datetime import datetime
 from urllib.parse import urljoin
 import json
 import logging
-import constants
 import html
+import sqlite3
+
+import constants
 
 logging.basicConfig(filename='test.log', encoding='utf-8', level=logging.DEBUG)
 
@@ -22,6 +23,16 @@ def determine_separator(data): # This determines what separator to use. Built ar
     else:
         return ' / ' # Function defaults to ' / ' as this is more prevalent for Melkweg
 
+async def insert_event_data(data, db_conn):
+    try:
+        cursor = db_conn.cursor()
+        cursor.execute("Insert INTO events (id, artist, subtitle, support, date, location, ticket_status, url, venue_id, last_check) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                       (data['id'], data['artist'], data['subtitle'], data['support'], data['date'], data['location'], data['ticket_status'], data['url'], data['venue_id'], data['last_check']))
+        db_conn.commit()
+    except Exception as e:
+        logging.warning(f"Error inserting event into database: {e}")
+        print(f"Error inserting event into database: {e}")
+
 def fetch_script_tag(soup, pos): # for catching the script tag that contains the json for 013
     try:
         return soup.find_all('script')[pos]
@@ -30,7 +41,6 @@ def fetch_script_tag(soup, pos): # for catching the script tag that contains the
     except:
         print('Something went wrong while finding the 013 script tag')
 
-
 async def fetch_page(session, url): # Basic function to fetch websites
     async with session.get(url) as response:
         if response.status == 200: # Make sure only succesful requests get through
@@ -38,7 +48,7 @@ async def fetch_page(session, url): # Basic function to fetch websites
         else:
             raise aiohttp.ClientResponseError(status=response.status) # Raise error if code other than 200 is returned
 
-async def parse_event_013(show, session, url):
+async def parse_event_013(show, session, url, db_conn):
     try:
         relative_url = show.get('url')
         full_url = urljoin(url, relative_url)
@@ -76,22 +86,22 @@ async def parse_event_013(show, session, url):
                 'id': '-'.join(show.get('url').split('/')[2:]),
                 'artist': html.unescape(str(show.get('title'))),
                 'subtitle': html.unescape(str(show.get('subTitle') if show.get('subTitle') else show.get('mobileEventDescription'))),
-                'support': show.get('supportActs'),
+                'support': json.dumps(show.get('supportActs')),
                 'date': datetime.fromisoformat(show.get('dates').get('startsAt')),
                 'location': str(event_data.get('location').get('name') + ', Tilburg, NL'), # 013's in house events contain a full location name in the JSON, so mentioning the venue is pointless
-                'tags': tags,
-                'ticket_status': constants.TICKET_STATUS[check_ticket_status(show)],
+                'tags': json.dumps(tags),
+                'ticket_status': check_ticket_status(show),
                 'url': full_url,
                 'venue_id': '013_nl',
                 'last_check': datetime.now(),
                 }
 
-        return data
+        await insert_event_data(data, db_conn)
+
     except Exception as e:
         print(f"Error parsing event page {url}: {e}")
-        return None
 
-async def parse_event_melkweg(show, session, url):
+async def parse_event_melkweg(show, session, url, db_conn):
     try:
         def check_ticket_status(show):
             try:
@@ -139,17 +149,18 @@ async def parse_event_melkweg(show, session, url):
                     'id': url.split('/')[-2],
                     'artist': str(show.h3.get_text(strip=True)),
                     'subtitle': str(subtitle),
-                    'support': support,
+                    'support': json.dumps(support),
                     'date': datetime.fromisoformat(event_soup.time.get('datetime').replace('Z', '+00:00')),
                     'location': str(event_soup.find(class_='styles_event-header__location__jvvG4').get_text(strip=False) + ', Melkweg, Amsterdam, NL'),
-                    'tags': show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else [],
-                    'ticket_status': constants.TICKET_STATUS[check_ticket_status(show)],
+                    'tags': json.dumps(show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else []),
+                    'ticket_status': check_ticket_status(show),
                     'url': url,
                     'venue_id': 'melkweg_nl',
                     'last_check': datetime.now(),
                     }
 
-            return data
+            await insert_event_data(data, db_conn)
+
         else:
             print('Event is not the correct type: ' + url)
             return None
@@ -157,7 +168,7 @@ async def parse_event_melkweg(show, session, url):
         print(f"Error parsing event page {url}: {e}")
         return None
 
-async def scrape_013():
+async def scrape_013(db_conn):
     base_url = 'https://www.013.nl/programma'
     async with aiohttp.ClientSession() as session:
         try:
@@ -176,10 +187,9 @@ async def scrape_013():
 
             tasks = []
             for show in agenda:
-                tasks.append(parse_event_013(show, session, base_url))
+                tasks.append(parse_event_013(show, session, base_url, db_conn))
 
-            parsed_results = await asyncio.gather(*tasks)
-            return parsed_results        
+            await asyncio.gather(*tasks)
 
         except aiohttp.ClientError as ce:
             print(f"HTTP request error: {ce}")
@@ -188,7 +198,7 @@ async def scrape_013():
             print(f"An error occurred: {e}")
             return []       
 
-async def scrape_melkweg():
+async def scrape_melkweg(db_conn):
     base_url = 'https://melkweg.nl/en/agenda/'
 
     async with aiohttp.ClientSession() as session:
@@ -202,7 +212,7 @@ async def scrape_melkweg():
             for show in agenda:
                 relative_url = show.a.get('href') # Whatever comes behind the domain name
                 full_url = urljoin(base_url, relative_url) # Duh
-                tasks.append(parse_event_melkweg(show, session, full_url)) # Adds tasks for rapid scraping async goodness
+                tasks.append(parse_event_melkweg(show, session, full_url, db_conn)) # Adds tasks for rapid scraping async goodness
 
             parsed_results = await asyncio.gather(*tasks)
             return [result for result in parsed_results if result is not None] # Filter out the empties to sanitise data
@@ -215,18 +225,26 @@ async def scrape_melkweg():
 
 if __name__ == '__main__':
     logging.info('Running test mode')
-    
-    loop = asyncio.get_event_loop()
-    tasks = [scrape_melkweg(), scrape_013()]
-    results = loop.run_until_complete(asyncio.gather(*tasks))
-    
-    n = 0
-    joiner = []
-    while n < len(results):
-        joiner.append(pd.DataFrame(results[n]))
-        n += 1
 
-    df = pd.concat(joiner, ignore_index=True).sort_values('date')
+    db_name = 'concertron_test_1.db'
+    conn = sqlite3.connect(db_name)
 
-    print(df)
-    df.to_csv('test.csv')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        artist TEXT NOT NULL,
+        subtitle TEXT NOT NULL,
+        support TEXT NOT NULL,
+        date TIMESTAMP,
+        location TEXT,
+        ticket_status TEXT,
+        url TEXT,
+        venue_id TEXT,
+        last_check TIMESTAMP
+        )''')
+    conn.commit()
+
+    asyncio.run(scrape_melkweg(conn))
+    asyncio.run(scrape_013(conn))
+
+    conn.close()
