@@ -59,6 +59,7 @@ async def parse_event_013(show, session, url):
                 'location': str(event_data.get('location').get('name') + ', Tilburg, NL'), # 013's in house events contain a full location name in the JSON, so mentioning the venue is pointless
                 'tags': tags,
                 'url': full_url,
+                'venue_id': '013_nl'
                 }
 
         return data
@@ -98,6 +99,7 @@ async def parse_event_melkweg(show, session, url):
                     'location': str(event_soup.find(class_='styles_event-header__location__jvvG4').get_text(strip=False) + ', Melkweg, Amsterdam, NL'),
                     'tags': show.find(class_='styles_tags-list__DAdH2').get_text(strip=True).split(tag_sep) if show.find(class_='styles_tags-list__DAdH2') else [],
                     'url': url,
+                    'venue_id': 'melkweg_nl'
                     }
 
             return data
