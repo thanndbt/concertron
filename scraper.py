@@ -4,6 +4,10 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 from urllib.parse import urljoin
+import json
+import logging
+
+logging.basicConfig(filename='test.log', encoding='utf-8', level=logging.DEBUG)
 
 def determine_separator(data): # This determines what separator to use. Built around the varying way Melkweg lists lineups and support acts.
     separator_slash_count = data.count(' / ')
@@ -16,6 +20,15 @@ def determine_separator(data): # This determines what separator to use. Built ar
     else:
         return ' / ' # Function defaults to ' / ' as this is more prevalent for Melkweg
 
+def fetch_script_tag(soup, pos): # for catching the script tag that contains the json for 013
+    try:
+        return soup.find_all('script')[pos]
+    except IndexError:
+        print('The script tag does not exist')
+    except:
+        print('Something went wrong while finding the 013 script tag')
+
+
 async def fetch_page(session, url): # Basic function to fetch websites
     async with session.get(url) as response:
         if response.status == 200: # Make sure only succesful requests get through
@@ -23,11 +36,42 @@ async def fetch_page(session, url): # Basic function to fetch websites
         else:
             raise aiohttp.ClientResponseError(status=response.status) # Raise error if code other than 200 is returned
 
+async def parse_event_013(show, session, url):
+    try:
+        relative_url = show.get('url')
+        full_url = urljoin(url, relative_url)
+        event_response = await fetch_page(session, full_url)
+        event_soup = BeautifulSoup(event_response, 'html.parser')
+        script_tag = fetch_script_tag(event_soup, -1)
+        event_data = json.loads(script_tag.string)
+
+        tags = []
+        for tag in show.get('genres'): # 013's genre tags are nested
+            tags.append(tag.get('title'))
+
+        data = {
+                # 013 has loads of flags
+                'id': '-'.join(show.get('url').split('/')[2:]),
+                'artist': show.get('title'),
+                'subtitle': show.get('subTitle') if show.get('subTitle') else show.get('mobileEventDescription'),
+                'support': show.get('supportActs'),
+                'date': datetime.fromisoformat(show.get('dates').get('startsAt')),
+                'location': str(event_data.get('location').get('name') + ', Tilburg, NL'), # 013's in house events contain a full location name in the JSON, so mentioning the venue is pointless
+                'tags': tags,
+                'url': full_url,
+                }
+
+        return data
+    except Exception as e:
+        print(f"Error parsing event page {url}: {e}")
+        return None
+
 async def parse_event_melkweg(show, session, url):
     try:
         tag_sep = '·' # Separator for genre tags
         event_type = show.find(class_='styles_event-compact__type-item__RPgGU') # Find event type
         if event_type and (event_type.span.get_text(strip=True).lower() in ['concert', 'club', 'festival']): # Filter event types (excluding expositions and cinema)
+            logging.info('Looking at the 013 event page')
             event_response = await fetch_page(session, url) 
             event_soup = BeautifulSoup(event_response, 'html.parser')
             if show.find(class_='styles_event-compact__subtitle__yGojc'): # Find subtitle on agenda page, return empty if none
@@ -64,6 +108,37 @@ async def parse_event_melkweg(show, session, url):
         print(f"Error parsing event page {url}: {e}")
         return None
 
+async def scrape_013():
+    base_url = 'https://www.013.nl/programma'
+    async with aiohttp.ClientSession() as session:
+        try:
+            agenda_html = await fetch_page(session, base_url)
+            soup = BeautifulSoup(agenda_html, 'html.parser')
+
+            # 013 uses json to store all information on events and generates its pages that way. It is actually very effective.
+            # This fetches and pre-processes the json
+            script_tag = fetch_script_tag(soup, -3)
+            script_content = script_tag.string
+            start_index = script_content.find('{"')
+            end_index = script_content.find('}]},')+3
+            json_content = script_content[start_index:end_index]
+
+            agenda = json.loads(json_content)['events'] # From here everything is accessible as a list of dictionary. Every event is a dict.
+
+            tasks = []
+            for show in agenda:
+                tasks.append(parse_event_013(show, session, base_url))
+
+            parsed_results = await asyncio.gather(*tasks)
+            return parsed_results        
+
+        except aiohttp.ClientError as ce:
+            print(f"HTTP request error: {ce}")
+            return []
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return []       
+
 async def scrape_melkweg():
     base_url = 'https://melkweg.nl/en/agenda/'
 
@@ -90,7 +165,19 @@ async def scrape_melkweg():
             return []
 
 if __name__ == '__main__':
+    logging.info('Running test mode')
+    
     loop = asyncio.get_event_loop()
-    df = pd.DataFrame(loop.run_until_complete(scrape_melkweg()))
+    tasks = [scrape_melkweg(), scrape_013()]
+    results = loop.run_until_complete(asyncio.gather(*tasks))
+    
+    n = 0
+    joiner = []
+    while n < len(results):
+        joiner.append(pd.DataFrame(results[n]))
+        n += 1
+
+    df = pd.concat(joiner, ignore_index=True).sort_values('date')
+
     print(df)
     df.to_csv('test.csv')
