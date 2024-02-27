@@ -10,9 +10,6 @@ import html
 import sqlite3
 import traceback
 
-# local modules
-import constants
-
 # Set logging -> this may change
 logging.basicConfig(filename='test.log', encoding='utf-8', level=logging.DEBUG)
 

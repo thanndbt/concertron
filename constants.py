@@ -1,4 +1,4 @@
-# Ticket status dictionary
+# Ticket status dictionary - for front-end use
 
 TICKET_STATUS = {
         'SALE_NOT_LIVE': 'No',
