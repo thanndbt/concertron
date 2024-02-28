@@ -6,11 +6,11 @@ from datetime import datetime, timedelta
 from urllib.parse import urljoin
 import json
 import html
-import sqlite3
 import traceback
 
 # local modules
 from logmanager import LogManager
+from dbmanager import DatabaseManager
 
 
 def determine_separator(data): # This determines what separator to use. Built around the varying way Melkweg lists lineups and support acts.
@@ -23,78 +23,6 @@ def determine_separator(data): # This determines what separator to use. Built ar
         return ' - '
     else:
         return ' / ' # Function defaults to ' / ' as this is more prevalent for Melkweg
-
-async def retrieve_event(event_id, db_conn): # retrieves an event from database by id, returns None if none exist
-    try:
-        logger.debug(f'{event_id}: Checking and retrieving event')
-        cursor = db_conn.cursor()
-        cursor.execute("SELECT * FROM events WHERE id = ?", (event_id,))
-        row = cursor.fetchone()
-        if row:
-            logger.debug(f'{event_id}: Event exists')
-            columns = [description[0] for description in cursor.description]
-            return dict(zip(columns, row)) # Using dicts for ease of use and consistency throughout script, default from db is tuple
-        else:
-            logger.debug(f'{event_id}: Event does not exist')
-            return None
-    except Exception as e:
-        logger.exception(f"Error retrieving {event_id} from db: {e}")
-        print(f"Error retrieving event from db: {e}")
-
-async def should_recheck_event(event_id, db_conn): # checks last_check and returns a value depending on timedelta to see if an individual event page should be checked again. if retrieve_event returns None, event does not exist, and function passes this on
-    try:
-        event = await retrieve_event(event_id, db_conn)
-        if event:
-            time_diff = datetime.now() - datetime.fromisoformat(event.get('last_check'))
-            if time_diff > timedelta(days=3):
-                return "EVENT_UPDATE"
-            else:
-                return "EVENT_EXISTS"
-        else:
-            return "EVENT_DOES_NOT_EXIST"
-
-    except Exception as e:
-        logger.exception(f"Error checking whether recheck is needed: {e}")
-        # logger.exception(traceback.print_exc(limit=1))
-        print(f"Error checking whether recheck is needed: {e}")
-
-async def insert_event_data(data, db_conn): # Inserts a new event into the database. Data is generate by the parse function of respective venues.
-    try:
-        cursor = db_conn.cursor()
-        cursor.execute("Insert INTO events (id, artist, subtitle, support, date, location, tags, ticket_status, url, venue_id, last_check, last_modified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                       (data['id'], data['artist'], data['subtitle'], data['support'], data['date'], data['location'], data['tags'], data['ticket_status'], data['url'], data['venue_id'], data['last_check'], data['last_modified']))
-        db_conn.commit()
-    except Exception as e:
-        logger.exception(f"Error inserting event into database: {e}")
-        print(f"Error inserting event into database: {e}")
-
-async def update_event_data(event_id, data, db_conn): # updates an existing event entry by id
-    try:
-        stored_event = await retrieve_event(event_id, db_conn) # retrieves the existing event from the db
-        if stored_event: # This should not be necessary, but better safe than sorry
-            cursor = db_conn.cursor()
-            changes = {key: value for key, value in data.items() if stored_event[key] != value} # Checks differences between the existing event and the newly scraped data and puts them in a dict
-
-            if changes: # if changes is not an empty dict
-                # Construct the UPDATE query
-                logger.debug('Changes to ' + str(event_id) + ': ' + str(changes))
-                changes['last_check'] = datetime.now()
-                changes['last_modified'] = datetime.now()
-                set_clause = ', '.join(f"{key} = ?" for key in changes.keys())
-                query = f"UPDATE events SET {set_clause} WHERE id = ?"
-                values = tuple(changes.values()) + (event_id,)
-
-                # Execute the UPDATE query
-                cursor.execute(query, values)
-                db_conn.commit()
-            else: # Only update last_check if no changes are made to actual event data
-                logger.debug(f'No changes to {event_id}')
-                cursor.execute("UPDATE events SET last_check=? WHERE id=?", (datetime.now(), event_id))
-        else:
-            raise Exception('stored_event is empty or wrong dtype: ' + str(type(stored_event)))
-    except Exception as e:
-        logger.exception(f'Failed to update event entry in db: {e}')
-        print(f'Failed to update event entry in db: {e}')
 
 def fetch_script_tag(soup, pos): # for catching the script tag that contains the json for 013
     try:
@@ -112,7 +40,7 @@ async def fetch_page(session, url): # Basic function to fetch websites
             raise aiohttp.ClientResponseError(status=response.status) # Raise error if code other than 200 is returned
 
 ######## VENUE EVENT PARSERS ########
-async def parse_event_013(show, session, url, db_conn):
+async def parse_event_013(show, session, url, db):
     ### 013 EVENT DICT KEYS ###
     # ROOT: ['id', 'title', 'subTitle', 'mobileEventDescription', 'supportActs', 'slug', 'type', 'url', 'dates', 'flags', 'colors', 'genres', 'images']
     # FLAGS['soldOut', 'onlyOne', 'cancelled', 'moved', 'newDate', 'onLocation', 'fewTicketsAvailable', 'saleStarted', 'saleEnded', 'started']
@@ -154,7 +82,7 @@ async def parse_event_013(show, session, url, db_conn):
                 return 'UNKNOWN'
 
         event_id = '-'.join(relative_url.split('/')[2:])
-        event_status = await should_recheck_event(event_id, db_conn)
+        event_status = await db.should_recheck_event(event_id)
 
         if event_status == 'EVENT_UPDATE':
             logger.debug(f'Updating event {event_id}')
@@ -176,7 +104,7 @@ async def parse_event_013(show, session, url, db_conn):
                         'ticket_status': check_ticket_status(show),
                         }
                 logger.debug('Up-to-date scrape ' + event_id + ': ' + str(data))
-                await update_event_data(event_id, data, db_conn)
+                await db.update_event_data(event_id, data)
             except Exception as e:
                 logger.exception(f'Failed to update entry {event_id}: {e}')
                 print(f'Failed to update entry {event_id}: {e}')
@@ -209,7 +137,7 @@ async def parse_event_013(show, session, url, db_conn):
                         }
                 logger.debug(str(data))
 
-                await insert_event_data(data, db_conn)
+                await db.insert_event_data(data)
             except Exception as e:
                 logger.exception(f'Failed to build new entry {event_id}: {e}')
                 print(f'Failed to build new entry {event_id}: {e}')
@@ -218,7 +146,7 @@ async def parse_event_013(show, session, url, db_conn):
         print(f"Error parsing event page {url}: {e}")
         logger.exception(f"Error parsing event page {url}: {e}")
 
-async def parse_event_melkweg(show, session, url, db_conn):
+async def parse_event_melkweg(show, session, url, db):
     try:
         def check_ticket_status(show): # Checks ticket status primarily based on a label seen on the agenda page
             try:
@@ -267,7 +195,7 @@ async def parse_event_melkweg(show, session, url, db_conn):
         event_type = show.find(class_='styles_event-compact__type-item__RPgGU') # Find event type
         if event_type and (event_type.span.get_text(strip=True).lower() in ['concert', 'club', 'festival']): # Filter event types (exclude expositions and cinema)
             event_id = url.split('/')[-2]
-            event_status = await should_recheck_event(event_id, db_conn)
+            event_status = await db.should_recheck_event(event_id)
 
             if event_status == 'EVENT_UPDATE':
                 try:
@@ -287,7 +215,7 @@ async def parse_event_melkweg(show, session, url, db_conn):
                             }
 
                     logger.debug('Up-to-date scrape ' + event_id + ': ' + str(data))
-                    await update_event_data(event_id, data, db_conn)
+                    await db.update_event_data(event_id, data)
                 except Exception as e:
                     logger.exception(f'Failed to update entry {event_id}: {e}')
                     print(f'Failed to update entry {event_id}: {e}')
@@ -319,7 +247,7 @@ async def parse_event_melkweg(show, session, url, db_conn):
                             }
 
                     logger.debug(str(data))
-                    await insert_event_data(data, db_conn)
+                    await db.insert_event_data(data)
                 except Exception as e:
                     logger.exception(f'Failed to build new entry {event_id}: {e}')
                     print(f'Failed to build new entry {event_id}: {e}')
@@ -331,7 +259,7 @@ async def parse_event_melkweg(show, session, url, db_conn):
         print(f"Error parsing event page {url}: {e}")
         return None
 
-async def scrape_013(db_conn):
+async def scrape_013(db):
     base_url = 'https://www.013.nl/programma'
     async with aiohttp.ClientSession() as session:
         try:
@@ -350,7 +278,7 @@ async def scrape_013(db_conn):
 
             tasks = []
             for show in agenda:
-                tasks.append(parse_event_013(show, session, base_url, db_conn))
+                tasks.append(parse_event_013(show, session, base_url, db))
 
             await asyncio.gather(*tasks)
 
@@ -361,7 +289,7 @@ async def scrape_013(db_conn):
             print(f"An error occurred: {e}")
             return []       
 
-async def scrape_melkweg(db_conn):
+async def scrape_melkweg(db):
     base_url = 'https://melkweg.nl/en/agenda/'
 
     async with aiohttp.ClientSession() as session:
@@ -375,7 +303,7 @@ async def scrape_melkweg(db_conn):
             for show in agenda:
                 relative_url = show.a.get('href') # Whatever comes behind the domain name
                 full_url = urljoin(base_url, relative_url) # Duh
-                tasks.append(parse_event_melkweg(show, session, full_url, db_conn)) # Adds tasks for rapid scraping async goodness
+                tasks.append(parse_event_melkweg(show, session, full_url, db)) # Adds tasks for rapid scraping async goodness
 
             parsed_results = await asyncio.gather(*tasks)
             return [result for result in parsed_results if result is not None] # Filter out the empties to sanitise data
@@ -387,14 +315,13 @@ async def scrape_melkweg(db_conn):
             return []
 
 if __name__ == '__main__':
-    logger = LogManager(__name__, log_file='scraper_test.log')
+    logger = LogManager(__name__)
     logger.info('Running test mode')
 
     db_name = 'concertron_test_1.db'
-    conn = sqlite3.connect(db_name)
+    db = DatabaseManager(db_name)
 
-    cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS events (
+    db.execute_query('''CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY,
         artist TEXT NOT NULL,
         subtitle TEXT NOT NULL,
@@ -408,10 +335,9 @@ if __name__ == '__main__':
         last_check TIMESTAMP,
         last_modified TIMESTAMP
         )''')
-    conn.commit()
 
-    asyncio.run(scrape_melkweg(conn))
-    asyncio.run(scrape_013(conn))
+    asyncio.run(scrape_melkweg(db))
+    asyncio.run(scrape_013(db))
 
-    conn.close()
+    db.disconnect()
     logger.info('Goodbye!')
