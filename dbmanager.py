@@ -31,9 +31,9 @@ class DatabaseManager:
             else:
                 self.cursor.execute(query)
             self.connection.commit()
-            print("Query executed successfully")
+            logger.debug("Query executed successfully")
         except sqlite3.Error as e:
-            print(f"Error executing query: {e}")
+            logger.error(f"Error executing query: {e}")
 
     async def retrieve_event(self, event_id): # retrieves an event from database by id, returns None if none exist
         try:
@@ -49,7 +49,6 @@ class DatabaseManager:
                 return None
         except Exception as e:
             logger.exception(f"Error retrieving {event_id} from db: {e}")
-            print(f"Error retrieving event from db: {e}")
 
     async def should_recheck_event(self, event_id): # checks last_check and returns a value depending on timedelta to see if an individual event page should be checked again. if retrieve_event returns None, event does not exist, and function passes this on
         try:
@@ -66,7 +65,6 @@ class DatabaseManager:
         except Exception as e:
             logger.exception(f"Error checking whether recheck is needed: {e}")
             # logger.exception(traceback.print_exc(limit=1))
-            print(f"Error checking whether recheck is needed: {e}")
 
     async def insert_event_data(self, data): # Inserts a new event into the database. Data is generate by the parse function of respective venues.
         try:
@@ -75,7 +73,6 @@ class DatabaseManager:
             self.connection.commit()
         except Exception as e:
             logger.exception(f"Error inserting event into database: {e}")
-            print(f"Error inserting event into database: {e}")
 
     async def update_event_data(self, event_id, data): # updates an existing event entry by id
         try:

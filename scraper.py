@@ -28,9 +28,9 @@ def fetch_script_tag(soup, pos): # for catching the script tag that contains the
     try:
         return soup.find_all('script')[pos]
     except IndexError:
-        print('The script tag does not exist')
+        logger.error('The script tag does not exist')
     except:
-        print('Something went wrong while finding the 013 script tag')
+        logger.exception('Something went wrong while finding the 013 script tag')
 
 async def fetch_page(session, url): # Basic function to fetch websites
     async with session.get(url) as response:
@@ -59,7 +59,6 @@ async def parse_event_013(show, session, url, db):
                 return event_data
             except Exception as e:
                 logger.exception(f'Error fetching 013 json: {e}')
-                print(f'Error fetching 013 json: {e}')
 
         def check_ticket_status(show): # Sets ticket sale status based on flags in json
             try:
@@ -78,7 +77,6 @@ async def parse_event_013(show, session, url, db):
                     return 'UNKNOWN'
             except Exception as e:
                 logger.exception(f'Ticket status could not be checked for {full_url}: {e}')
-                print(f'Ticket status could not be checked for {full_url}: {e}')
                 return 'UNKNOWN'
 
         event_id = '-'.join(relative_url.split('/')[2:])
@@ -107,7 +105,6 @@ async def parse_event_013(show, session, url, db):
                 await db.update_event_data(event_id, data)
             except Exception as e:
                 logger.exception(f'Failed to update entry {event_id}: {e}')
-                print(f'Failed to update entry {event_id}: {e}')
 
         elif event_status == 'EVENT_EXISTS':
             logger.debug(f'Event {event_id} exists but does not require updating')
@@ -140,10 +137,8 @@ async def parse_event_013(show, session, url, db):
                 await db.insert_event_data(data)
             except Exception as e:
                 logger.exception(f'Failed to build new entry {event_id}: {e}')
-                print(f'Failed to build new entry {event_id}: {e}')
 
     except Exception as e:
-        print(f"Error parsing event page {url}: {e}")
         logger.exception(f"Error parsing event page {url}: {e}")
 
 async def parse_event_melkweg(show, session, url, db):
@@ -165,7 +160,6 @@ async def parse_event_melkweg(show, session, url, db):
                     return 'SALE_LIVE' # This is true, for now.
             except Exception as e:
                 logger.exception(f'Ticket status could not be checked for {url}: {e}')
-                print(f'Ticket status could not be checked for {url}: {e}')
                 return 'UNKNOWN'
 
         async def data_fetcher(session, url): # Fetches event page, returns as a soup
@@ -218,7 +212,6 @@ async def parse_event_melkweg(show, session, url, db):
                     await db.update_event_data(event_id, data)
                 except Exception as e:
                     logger.exception(f'Failed to update entry {event_id}: {e}')
-                    print(f'Failed to update entry {event_id}: {e}')
 
             elif event_status == 'EVENT_EXISTS':
                 logger.debug(f'Event {event_id} exists but does not require updating')
@@ -250,13 +243,12 @@ async def parse_event_melkweg(show, session, url, db):
                     await db.insert_event_data(data)
                 except Exception as e:
                     logger.exception(f'Failed to build new entry {event_id}: {e}')
-                    print(f'Failed to build new entry {event_id}: {e}')
 
         else:
             logger.debug('Event is not the correct type: ' + url)
             return None
     except Exception as e:
-        print(f"Error parsing event page {url}: {e}")
+        logger.exception(f"Error parsing event page {url}: {e}")
         return None
 
 async def scrape_013(db):
@@ -283,10 +275,10 @@ async def scrape_013(db):
             await asyncio.gather(*tasks)
 
         except aiohttp.ClientError as ce:
-            print(f"HTTP request error: {ce}")
+            logger.error(f"HTTP request error: {ce}")
             return []
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.error(f"An error occurred: {e}")
             return []       
 
 async def scrape_melkweg(db):
@@ -308,10 +300,10 @@ async def scrape_melkweg(db):
             parsed_results = await asyncio.gather(*tasks)
             return [result for result in parsed_results if result is not None] # Filter out the empties to sanitise data
         except aiohttp.ClientError as ce:
-            print(f"HTTP request error: {ce}")
+            logger.error(f"HTTP request error: {ce}")
             return []
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.error(f"An error occurred: {e}")
             return []
 
 if __name__ == '__main__':
