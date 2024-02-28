@@ -1,6 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
-from logmanager import LogManager
+from logs.manager import LogManager
 
 logger = LogManager(__name__)
 
