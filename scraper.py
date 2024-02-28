@@ -306,10 +306,7 @@ async def scrape_melkweg(db):
             logger.error(f"An error occurred: {e}")
             return []
 
-if __name__ == '__main__':
-    logger = LogManager(__name__)
-    logger.info('Running test mode')
-
+async def main():
     db_name = 'concertron_test_1.db'
     db = DatabaseManager(db_name)
 
@@ -328,8 +325,19 @@ if __name__ == '__main__':
         last_modified TIMESTAMP
         )''')
 
-    asyncio.run(scrape_melkweg(db))
-    asyncio.run(scrape_013(db))
+    # asyncio.run(scrape_melkweg(db))
+    # asyncio.run(scrape_013(db))
+
+    await asyncio.gather(
+            scrape_melkweg(db),
+            scrape_013(db)
+    )
 
     db.disconnect()
     logger.info('Goodbye!')
+
+if __name__ == '__main__':
+    logger = LogManager(__name__)
+    logger.info('Running test mode')
+
+    asyncio.run(main())
