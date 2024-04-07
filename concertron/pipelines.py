@@ -72,7 +72,7 @@ class ConcertronPipeline:
 
     def process_tags(self, item, spider):
         edge_cases_art = ['Poëzie / Spoken Word']
-        edge_cases_club = ['by-night', 'by-night-global', 'by-night-blobal', 'Club', 'club']
+        edge_cases_club = ['by-night', 'by-night-global', 'by-night-blobal', 'Club', 'club', '00:13']
         edge_cases_comedy = ['comedy', 'Comedy']
         # edge_cases_concert = ['Concert']
         edge_cases_festival = ['Festivals']
