@@ -81,6 +81,7 @@ class spiderEvents(scrapy.Spider):
         connector = ', '
         base_location = connector.join([venue_name, town])
         additional_data = {
+                'event_type': 'Festival' if 'festival' in ' '.join(response.xpath("div[@class='mb-6 md:mb-12']//text()").getall()) else 'Concert',
                 'support': response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]/li/text()').getall() if response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]') else [],
                 'location': connector.join([location_line[1], base_location]) if location_line[0] == 'Zaal' else (connector.join([location_line[1], town]) if location_line[0] == 'Locatie' else venue),
                 'url': response.url,
