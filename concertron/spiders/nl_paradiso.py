@@ -1,14 +1,15 @@
 import scrapy
-from concertron.items import ConcertronNewItem, ConcertronUpdatedItem
+from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem
 import json
 from datetime import datetime, timezone
 from concertron.utils import does_event_exist
 
 
-class spider(scrapy.Spider):
-    name = "nl_paradiso"
+class spiderEvents(scrapy.Spider):
+    name = "nl_paradiso_events"
     allowed_domains = ["knwxh8dmh1.execute-api.eu-central-1.amazonaws.com"]
     start_urls = ["https://knwxh8dmh1.execute-api.eu-central-1.amazonaws.com/graphql"]
+    venue_id = 'nl_paradiso'
 
     def check_status(self, show):
         eventStatus = show.get('eventStatus')
@@ -31,7 +32,7 @@ class spider(scrapy.Spider):
 
         for show in agenda:
             main_data = {
-                    '_id': str(self.name + '-' + str(show.get('id'))),
+                    '_id': str(self.venue_id + '-' + str(show.get('id'))),
                     'title': str(show.get('title')),
                     'subtitle': str(show.get('subtitle')) if show.get('subtitle') else '',
                     'support': str(show.get('supportAct')).split(' + ') if show.get('supportAct') else [],
@@ -47,7 +48,7 @@ class spider(scrapy.Spider):
                 additional_data = {
                         'event_type': 'Concert',
                         'url': str('https://paradiso.nl/en/' + show.get('uri')),
-                        'venue_id': self.name,
+                        'venue_id': self.venue_id,
                         'last_check': datetime.now(),
                         'last_modified': datetime.now(),
                         }
@@ -153,4 +154,127 @@ class spider(scrapy.Spider):
                 body=body,
                 callback=self.parse
                 )
+
+
+class spiderTags(scrapy.Spider):
+    name = "nl_paradiso_tags"
+    allowed_domains = ["paradiso.nl", "knwxh8dmh1.execute-api.eu-central-1.amazonaws.com"]
+    start_urls = ["https://www.paradiso.nl/en"]
+    venue_id = 'nl_paradiso'
+
+    def check_tags(self, response):
+        data = json.loads(response.body)
+        agenda = data.get('data').get('program').get('events')
+
+        for show in agenda:
+            tag_data = {
+                    '_id': str(self.venue_id + '-' + str(show.get('id'))),
+                    'tag': response.meta.get('tag'),
+                    'last_modified': datetime.now()
+                    }
+            tag_item = ConcertronTagsItem(**tag_data)
+            yield tag_item
+
+    def parse(self, response):
+        script = response.xpath("//script[contains(text(), 'contentCategory_Category')]/text()").get().replace('\\"', '"')
+        pattern_start = '"contentCategory":[{'
+        pattern_end = '}]}}]'
+        filters = json.loads(script[script.find(pattern_start)+len(pattern_start)-2:script.find(pattern_end)+2])
+
+        for tag in filters:
+            json_data = {
+                    'operationName': "programItemsQuery",
+                    'query': '''
+                    query programItemsQuery(
+                        $site: String
+                            $size: Int = 100
+                            $gteStartDateTime: String
+                            $lteStartDateTime: String
+                            $searchAfter: [String]
+                            $location: [Int]
+                            $subBrand: [Int]
+                            $contentCategory: [Int]
+                            $highlight: Boolean = false
+                            ) {
+                            program(
+                              site: $site
+                              size: $size
+                              gteStartDateTime: $gteStartDateTime
+                              lteStartDateTime: $lteStartDateTime
+                              searchAfter: $searchAfter
+                              location: $location
+                              subBrand: $subBrand
+                              contentCategory: $contentCategory
+                              highlight: $highlight
+                            ) {
+                              __typename
+                              events {
+                                __typename
+                                id
+                                uri
+                                title
+                                startDateTime
+                                date
+                                subtitle
+                                sort
+                                eventStatus
+                                highlight
+                                supportAct
+                                announceSupport
+                                soldOut
+                                location {
+                                  id
+                                  title
+                                }
+                                image {
+                                  mobile
+                                  mobile2x
+                                  mobileWebp
+                                  mobile2xWebp
+                                  tablet
+                                  tablet2x
+                                  tabletWebp
+                                  tablet2xWebp
+                                  desktop
+                                  desktop2x
+                                  desktopWebp
+                                  desktop2xWebp
+                                  desktopL
+                                  desktopL2x
+                                  desktopLWebp
+                                  desktopL2xWebp
+                                  desktopXL
+                                  desktopXL2x
+                                  desktopXLWebp
+                                  desktopXL2xWebp
+                                  type
+                                }
+                              }
+                            }
+                            }''',
+                    "variables": {
+                            "contentCategory": [int(tag.get('id'))],
+                            "gteStartDateTime": datetime.now().strftime('%Y-%m-%d'),
+                            "location": None,
+                            "lteStartDateTime": None,
+                            "searchAfter": None,
+                            "site": "paradisoEnglish",
+                            "size": 1000,
+                            "subBrand": None
+                            }
+                    }
+            body = json.dumps(json_data)
+
+            headers = {
+                    'Content-Type': 'application/json',
+                    }
+
+            yield scrapy.Request(
+                    url='https://knwxh8dmh1.execute-api.eu-central-1.amazonaws.com/graphql',
+                    method='POST',
+                    headers=headers,
+                    body=body,
+                    callback=self.check_tags,
+                    meta={'tag': tag.get('title')}
+                    )
 

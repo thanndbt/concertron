@@ -71,17 +71,29 @@ class ConcertronPipeline:
             return None
 
     def process_tags(self, item, spider):
-        edge_cases_comedy = ['comedy']
-        edge_cases_club = ['by-night', 'by-night-global', 'by-night-blobal']
+        edge_cases_art = ['Poëzie / Spoken Word']
+        edge_cases_club = ['by-night', 'by-night-global', 'by-night-blobal', 'Club', 'club']
+        edge_cases_comedy = ['comedy', 'Comedy']
+        # edge_cases_concert = ['Concert']
+        edge_cases_festival = ['Festivals']
+        edge_cases_knowledge = ['Literature / Science / Politics / Art']
 
         entry = self.db[self.collection_name].find_one({'_id': item.get('_id')})
         tags = entry.get('tags')
         if item.get('tag') not in tags:
             tags.append(item.get('tag'))
-            if item.get('tag') in edge_cases_comedy:
-                self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': item.get('tag').capitalize(), 'tags': tags, 'last_modified': item.get('last_modified')}})
+            if item.get('tag') in edge_cases_art:
+                self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': 'Art', 'tags': tags, 'last_modified': item.get('last_modified')}})
             elif item.get('tag') in edge_cases_club:
                 self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': 'Club', 'tags': tags, 'last_modified': item.get('last_modified')}})
+            elif item.get('tag') in edge_cases_comedy:
+                self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': 'Comedy', 'tags': tags, 'last_modified': item.get('last_modified')}})
+            # elif item.get('tag') in edge_cases_concert:
+                # self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': 'Concert', 'tags': tags, 'last_modified': item.get('last_modified')}})
+            elif item.get('tag') in edge_cases_festival:
+                self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': 'Festival', 'tags': tags, 'last_modified': item.get('last_modified')}})
+            elif item.get('tag') in edge_cases_knowledge:
+                self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'event_type': 'Knowledge', 'tags': tags, 'last_modified': item.get('last_modified')}})
             else:
                 self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'tags': tags, 'last_modified': item.get('last_modified')}})
             # self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'tags': tags, 'last_modified': item.get('last_modified')}})
