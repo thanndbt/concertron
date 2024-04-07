@@ -76,7 +76,7 @@ class ConcertronPipeline:
         edge_cases_comedy = ['comedy', 'Comedy']
         # edge_cases_concert = ['Concert']
         edge_cases_festival = ['Festivals']
-        edge_cases_knowledge = ['Literature / Science / Politics / Art']
+        edge_cases_knowledge = ['Literature / Science / Politics / Art', 'Workshop', 'Panel', 'Talks', 'DJ & Producer Workshops']
 
         entry = self.db[self.collection_name].find_one({'_id': item.get('_id')})
         tags = entry.get('tags')
