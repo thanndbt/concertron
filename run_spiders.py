@@ -18,7 +18,8 @@ runner = CrawlerRunner(settings)
 @defer.inlineCallbacks
 def crawl():
     yield runner.crawl(nl_melkweg.spider)
-    yield runner.crawl(nl_013.spider)
+    yield runner.crawl(nl_013_events.spider)
+    yield runner.crawl(nl_013_tags.spider)
     yield runner.crawl(nl_paradiso.spider)
     yield runner.crawl(nl_tivolivredenburg.spiderEvents)
     yield runner.crawl(nl_tivolivredenburg.spiderTags)
