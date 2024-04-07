@@ -8,7 +8,5 @@ This is a learning-as-I-go type project, learning more about scraping, databases
 
 - [x] **013** - Tilburg, NL
 - [x] **Melkweg** - Amsterdam, NL
-- [ ] **Paradiso** - Amsterdam, NL
-	+ [x] Event scraper
-	+ [ ] Tag scraper
+- [x] **Paradiso** - Amsterdam, NL
 - [x] **TivoliVredenburg** - Utrecht, NL
