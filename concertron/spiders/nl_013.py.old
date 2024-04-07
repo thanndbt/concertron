@@ -1,0 +1,102 @@
+import scrapy
+from concertron.items import ConcertronNewItem, ConcertronUpdatedItem
+from datetime import datetime, timezone
+import json
+from html import unescape
+
+from concertron.utils import does_event_exist
+
+class spider(scrapy.Spider):
+    name = "nl_013"
+    allowed_domains = ["013.nl"]
+    start_urls = ["https://013.nl/programma"]
+
+
+    def fetch_json(self, response):
+        tag = response.xpath(f"//script[contains(text(), '__bridge')]/text()").get()
+        start_index = tag.find('{"')
+        end_index = tag.find('}]},')+3
+        json_contents = tag[start_index:end_index]
+        data = json.loads(json_contents)
+        return data[list(data.keys())[0]]
+
+    def check_status(self, show): # Sets ticket sale status based on flags in json
+        flags = show.get('flags')
+        if flags.get('soldOut'):
+            return 'SOLD_OUT'
+        elif flags.get('fewTicketsAvailable'):
+            return 'FEW_TICKETS'
+        elif flags.get('saleStarted'):
+            return 'SALE_LIVE'
+        elif not flags.get('saleStarted'):
+            return 'SALE_NOT_LIVE'
+        elif flags.get('cancelled'):
+            return 'CANCELLED'
+        else:
+            return 'UNKNOWN'
+
+
+    def parse(self, response):
+        agenda = self.fetch_json(response)
+        for show in agenda:
+            show_url = show.get('url')
+
+            tags = []
+            for tag in show['genres']: # 013's genre tags are nested
+                tags.append(tag['title'])
+
+            main_data = {
+                    '_id': str(self.name + '-' + '-'.join(show_url.split('/')[2:])),
+                    'title': unescape(str(show.get('title'))),
+                    'subtitle': unescape(str(show.get('subTitle')) if show.get('subTitle') else show.get('mobileEventDescription')),
+                    'support': show.get('supportActs'),
+                    'date': datetime.fromisoformat(show.get('dates').get('startsAt')).astimezone(timezone.utc).replace(tzinfo=None),
+                    'tags': tags,
+                    'status': self.check_status(show),
+            }
+
+            event_status = does_event_exist(main_data.get('_id'))
+            if event_status == 'EVENT_DOES_NOT_EXIST':
+                yield scrapy.Request(url=str('https://www.013.nl' + show_url), callback=self.parse_new, meta={'main_data': main_data})
+            elif event_status == "EVENT_EXISTS":
+                event_item = ConcertronUpdatedItem(**main_data)
+                yield event_item
+            elif event_status == "EVENT_UPDATE":
+                yield scrapy.Request(url=str('https://www.013.nl' + show_url), callback=self.parse_updated, meta={'main_data': main_data})
+
+    def parse_new(self, response):
+        show = self.fetch_json(response)
+        additional_data = {
+                'location': str(unescape(show.get('area').get('title')) + str(', 013' if not show.get('flags').get('onLocation') else '') + ', Tilburg, NL'),
+                'url': response.url,
+                'venue_id': self.name,
+                'last_check': datetime.now(),
+                'last_modified': datetime.now(),
+        }
+
+        main_data = response.meta['main_data']
+        main_data.update(additional_data)
+
+        if '00:13' in main_data.get('tags'):
+            main_data['event_type'] = 'Club'
+            # main_data['tags'].remove('00:13')
+        elif 'festival' in main_data.get('title').lower():
+            main_data['event_type'] = 'Festival'
+        else:
+            main_data['event_type'] = 'Concert'
+
+        event_item = ConcertronNewItem(**main_data)
+        yield event_item
+
+    def parse_updated(self, response):
+        show = self.fetch_json(response)
+        additional_data = {
+                'location': str(unescape(show.get('area').get('title')) + str(', 013' if not show.get('flags').get('onLocation') else '') + ', Tilburg, NL'),
+                'last_check': datetime.now(),
+        }
+
+        main_data = response.meta['main_data']
+        main_data.update(additional_data)
+
+        event_item = ConcertronUpdatedItem(**main_data)
+        yield event_item

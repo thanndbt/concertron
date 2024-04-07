@@ -1,0 +1,72 @@
+import scrapy
+from concertron.items import ConcertronNewItem, ConcertronUpdatedItem
+from datetime import datetime, timezone
+from concertron.utils import does_event_exist
+
+class spider(scrapy.Spider):
+    name = "template"
+    allowed_domains = ["www.example.com"]
+    start_urls = ["https://www.example.com/agenda"]
+
+    # Any venue specific parsing functions should go up here and here alone
+    # Check the concertron/utils.py file to see if something you need is already there, then import it
+    # Also consider checking other scrapers so that code can be repurposed
+
+    def check_status(self, response):
+        # Series of if-elif-else statements to return to whatever called it
+        # Possible tags in DB:
+        #   SALE_LIVE
+        #   SALE_NOT_LIVE (meant for when sale is not live YET)
+        #   MOVED
+        #   CANCELLED
+        #   SOLD_OUT
+        #   FREE
+        #   UNKNOWN (this should only be used for debugging and development)
+        pass
+
+    def parse(self, response):
+        for show in agenda: # Set agenda right
+            main_data = { # These are all fiels in ConcertronUpdatedItem except last_check. This would be ideal as it wouldn't require an extra parsing function for the show. Move this around as necessary for the venue.
+                    '_id': , # Format should be {venue_id}-{internal_id}, where internal_id should be what comes after the domain or main programme page
+                    'title': , # Str
+                    'subtitle': # Str
+                    'support': , # Should be list, if no support, then just []
+                    'date': datetime.fromisoformat().astimezone(timezone.utc).replace(tzinfo=None),
+                    'location': , # Str. Preferred format is Room, Venue, City, Country (2-letter code)
+                    'tags': , # Should be list, if no tags, then just []
+                    'status': self.check_status(data),
+                    }
+            event_status = does_event_exist(main_data.get('_id'))
+            if event_status == 'EVENT_DOES_NOT_EXIST':
+                yield scrapy.Request(url=str('https://' + allowed_domains[0] + show_url), callback=self.parse_new, meta={'main_data': main_data})
+            elif event_status == "EVENT_EXISTS":
+                event_item = ConcertronUpdatedItem(**main_data)
+                yield event_item
+            elif event_status == "EVENT_UPDATE":
+                yield scrapy.Request(url=str('https://' + allowed_domains[0] + show_url), callback=self.parse_updated, meta={'main_data': main_data})
+
+    def parse_new(self, response):
+        additional_data = {
+                'event_type': , # Str
+                'url': , # Str, full url. could be as simple as response.url
+                'venue_id': self.name, # Should not have to change
+                'last_check': datetime.now(),
+                'last_modified': datetime.now(),
+                }
+        main_data = response.meta['main_data']
+        main_data.update(additional_data)
+        event_item = ConcertronNewItem(**main_data)
+        yield event_item
+
+    def parse_updated(self, response):
+        additional_data = {
+                'event_type': , # Str
+                'url': , # Str, full url. could be as simple as response.url
+                'venue_id': self.name, # Should not have to change
+                'last_check': datetime.now(),
+        }
+
+        main_data = response.meta['main_data']
+        main_data.update(additional_data)
+        event_item = ConcertronUpdatedItem(**main_data)
+        yield event_item

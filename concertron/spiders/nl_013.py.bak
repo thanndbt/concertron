@@ -1,0 +1,68 @@
+import scrapy
+from concertron.items import ConcertronNewItem
+from datetime import datetime
+import json
+from html import unescape
+# from twisted.internet import asyncioreactor
+
+# asyncioreactor.install()
+
+class spider(scrapy.Spider):
+    name = "nl_013"
+    allowed_domains = ["013.nl"]
+    start_urls = ["https://013.nl/programma"]
+
+
+    def fetch_json(self, response):
+        tag = response.xpath(f"//script[contains(text(), '__bridge')]/text()").get()
+        start_index = tag.find('{"')
+        end_index = tag.find('}]},')+3
+        json_contents = tag[start_index:end_index]
+        data = json.loads(json_contents)
+        return data[list(data.keys())[0]]
+
+    def parse(self, response):
+        agenda = self.fetch_json(response)
+        for show in agenda:
+            show_url = show.get('url')
+
+            tags = []
+            for tag in show.get('genres'): # 013's genre tags are nested
+                tags.append(tag.get('title'))
+
+            main_data = {
+                    '_id': str(self.name + '-' + '-'.join(show_url.split('/')[2:])),
+                    'artist': unescape(str(show.get('title'))),
+                    'subtitle': unescape(str(show.get('subTitle')) if show.get('subTitle') else show.get('mobileEventDescription')),
+                    'support': show.get('supportActs'),
+                    'date': datetime.fromisoformat(show.get('dates').get('startsAt')),
+                    'tags': tags,
+                    'ticket_status': 'BLANK',
+                    'venue_id': self.name,
+            }
+
+            yield scrapy.Request(url=str('https://www.013.nl' + show_url), callback=self.parse_show, meta={'main_data': main_data})
+
+    def parse_show(self, response):
+        show = self.fetch_json(response)
+        print(type(show))
+        additional_data = {
+                'location': str(unescape(show.get('area').get('title')) + str(', 013' if not show.get('flags').get('onLocation') else '') + ', Tilburg, NL'),
+                'url': response.url,
+                'last_check': datetime.now(),
+                'last_modified': datetime.now(),
+        }
+
+        main_data = response.meta['main_data']
+        main_data.update(additional_data)
+
+        if '00:13' in main_data['tags']:
+            main_data['event_type'] = 'Club'
+            main_data['tags'].remove('00:13')
+        elif 'festival' in main_data['artist'].lower():
+            main_data['event_type'] = 'Festival'
+        else:
+            main_data['event_type'] = 'Concert'
+
+        event_item = ConcertronNewItem(**main_data)
+        yield event_item
