@@ -170,7 +170,7 @@ class spiderTags(scrapy.Spider):
             url_split.insert(insert_index, '2')
             url_split.insert(insert_index, 'page')
             page_url = '/'.join(url_split)
-            yield scrapy.Request(url=page_url, callback=self.check_tags)
+            yield scrapy.Request(url=page_url, callback=self.check_tags, meta={'tag': response.meta.get('tag')})
         elif 'page' not in response.url:
             pass
         else:
@@ -181,7 +181,7 @@ class spiderTags(scrapy.Spider):
             url_split[number_index] = str(int(old_page + 1))
             page_url = '/'.join(url_split)
             if old_page < max_page:
-                yield scrapy.Request(url=page_url, callback=self.check_tags)
+                yield scrapy.Request(url=page_url, callback=self.check_tags, meta={'tag': response.meta.get('tag')})
 
     def parse(self, response):
         filters = response.xpath('//a[@data-taxonomy="event_category"]/@data-term_id').getall()
