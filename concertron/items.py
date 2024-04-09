@@ -18,6 +18,8 @@ class ConcertronNewItem(scrapy.Item):
     status = scrapy.Field()
     url = scrapy.Field()
     venue_id = scrapy.Field()
+    image_bin = scrapy.Field()
+    image_url = scrapy.Field()
     last_check = scrapy.Field()
     last_modified = scrapy.Field()
 
