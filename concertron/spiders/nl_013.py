@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 import json
 from html import unescape
 
-from concertron.utils import does_event_exist
+from concertron.utils import does_event_exist, download_image
 
 class spiderEvents(scrapy.Spider):
     name = "nl_013_events"
@@ -38,7 +38,7 @@ class spiderEvents(scrapy.Spider):
                     return 'SALE_NOT_LIVE'
                 elif button_text == 'Uitverkocht':
                     return 'SOLD_OUT'
-                elif button_text == 'Laatste kaarten':
+                elif button_text == 'Laatste kaarten' or button_text == 'Laatste tickets':
                     return 'FEW_TICKETS'
                 elif button_text == 'Afgelast': # Could be different, no way to tell right now
                     return 'CANCELLED'
@@ -95,6 +95,7 @@ class spiderEvents(scrapy.Spider):
         main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronNewItem(**main_data)
+        download_image(response.xpath("//img/@src").get(), main_data['_id'])
         yield event_item
 
     def parse_updated(self, response):

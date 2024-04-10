@@ -1,7 +1,7 @@
 import scrapy
 from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem
 from datetime import datetime, timezone
-from concertron.utils import does_event_exist
+from concertron.utils import does_event_exist, download_image
 
 
 class spiderEvents(scrapy.Spider):
@@ -132,6 +132,7 @@ class spiderEvents(scrapy.Spider):
                 }
         main_data.update(additional_data)
         event_item = ConcertronNewItem(**main_data)
+        download_image(response.xpath("//source/@srcset").get().split(' ')[0], main_data['_id'])
         yield event_item
 
     def parse_updated(self, response):

@@ -24,15 +24,15 @@ def does_event_exist(_id):
     else:
         return "EVENT_DOES_NOT_EXIST"
 
-def download_image(url):
+def download_image(url, _id):
     try:
         r = requests.get(url)
         r.raise_for_status()
         b = BytesIO(r.content).read()
-        return b
+        with open(str('./img/'+_id), "wb") as file:
+            file.write(b)
     except requests.RequestException as e:
         print(f"Error making request to {url}: {e}")
-        return None
     except Exception as e:
         print(f"Something went wrong with {url}, but status was 200: {e}")
 

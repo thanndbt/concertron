@@ -2,7 +2,7 @@ import scrapy
 from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem
 import json
 from datetime import datetime, timezone
-from concertron.utils import does_event_exist
+from concertron.utils import does_event_exist, download_image
 
 
 class spiderEvents(scrapy.Spider):
@@ -54,6 +54,7 @@ class spiderEvents(scrapy.Spider):
                         }
                 main_data.update(additional_data)
                 event_item = ConcertronNewItem(**main_data)
+                download_image(show.get('image')[1].get('desktopXL2xWebp'), main_data['_id'])
                 yield event_item
             elif event_status == "EVENT_EXISTS" or event_status == "EVENT_UPDATE":
                 event_item = ConcertronUpdatedItem(**main_data)

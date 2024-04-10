@@ -8,3 +8,6 @@ __pycache__/
 # No logs
 *.log
 *.lol
+
+# No img
+img/
