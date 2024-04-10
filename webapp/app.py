@@ -56,4 +56,4 @@ def serve_image(filename):
     return send_from_directory(img_dir, filename)
 
 if __name__ == '__main__':
-    app.run(debug=True, host='192.168.178.241')
+    app.run(debug=True)
