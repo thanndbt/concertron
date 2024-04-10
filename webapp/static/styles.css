@@ -4,3 +4,8 @@ body {
 	font-size: .9rem
 	/*background-color: #cccccc;*/
 }
+
+.table img {
+	max-height: 145px;
+	width: auto;
+}
