@@ -43,18 +43,18 @@
 			<div class="table-responsive">
 				<table border="1" class="table">
 					<tr>
-						<th scope="col">img</th>
+						<th scope="col" class='d-none d-md-table-cell'>img</th>
 						<th scope="col">Date</th>
 						<th scope="col">Title</th>
 						<th scope="col">Status</th>
-						<th scope="col">Subtitle</th>
+						<th scope="col" class='d-none d-md-table-cell'>Subtitle</th>
 						<!--<th scope="col">Tags</th>-->
-						<th scope="col">Location</th>
+						<th scope="col" class='d-none d-md-table-cell'>Location</th>
 						<!-- Add more table headers if needed -->
 					</tr>
 					{% for entry in data %}
 					<tr>
-						<td scope="row"><img src="/images/{{ entry._id }}" height=100px></td>
+						<td scope="row" class='d-none d-md-table-cell'><img src="/images/{{ entry._id }}" class="img-fluid"></td>
 						<td scope="row">{{ entry.date }}</td>
 						<td scope="row">
 							<h6>{{ entry.title }}</h6>
@@ -68,13 +68,13 @@
 								{{ entry.status.replace('_', ' ').capitalize() }}
 							</a>
 						</td>
-						<td scope="row">{{ entry.subtitle }}</td>
+						<td scope="row" class='d-none d-md-table-cell'>{{ entry.subtitle }}</td>
 						<!--<td scope="row">-->
 						<!--{% for tag in entry.tags %}-->
 						<!--{{ tag }} -->
 						<!--{% endfor %}-->
 						<!--</td>-->
-						<td scope="row">{{ entry.location }}</td>
+						<td scope="row" class='d-none d-md-table-cell'>{{ entry.location }}</td>
 						<!-- Add more table cells if needed -->
 					</tr>
 					{% endfor %}
