@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, send_from_directory
 from pymongo import MongoClient
 from datetime import datetime
 
@@ -50,6 +50,10 @@ def filter_data():
     data = list(collection.find(filter=filter, sort={'date': 1}))
     return render_template('index.html', data=data, collection=collection)
 
+@app.route('/images/<path:filename>', methods=['GET'])
+def serve_image(filename):
+    img_dir = '../img/'
+    return send_from_directory(img_dir, filename)
 
 if __name__ == '__main__':
     app.run(debug=True)

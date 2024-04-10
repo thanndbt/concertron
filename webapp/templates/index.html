@@ -43,6 +43,7 @@
 			<div class="table-responsive">
 				<table border="1" class="table">
 					<tr>
+						<th scope="col">img</th>
 						<th scope="col">Date</th>
 						<th scope="col">Status</th>
 						<th scope="col">Title</th>
@@ -53,6 +54,7 @@
 					</tr>
 					{% for entry in data %}
 					<tr>
+						<td scope="row"><img src="/images/{{ entry._id }}" height=100px></td>
 						<td scope="row">{{ entry.date }}</td>
 						<td scope="row">{{ entry.status.replace('_', ' ').capitalize() }}</td>
 						<td scope="row">
