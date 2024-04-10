@@ -9,7 +9,7 @@
 		<title>Concertron Database Viewer</title>
 	</head>
 	<body>
-		<div class="container">
+		<div class="container-fluid">
 			<h1>Concertron Database Viewer</h1>
 			<form action="/filter" method="post">
 				<div class="mb-3">
@@ -45,8 +45,8 @@
 					<tr>
 						<th scope="col">img</th>
 						<th scope="col">Date</th>
-						<th scope="col">Status</th>
 						<th scope="col">Title</th>
+						<th scope="col">Status</th>
 						<th scope="col">Subtitle</th>
 						<!--<th scope="col">Tags</th>-->
 						<th scope="col">Location</th>
@@ -56,13 +56,17 @@
 					<tr>
 						<td scope="row"><img src="/images/{{ entry._id }}" height=100px></td>
 						<td scope="row">{{ entry.date }}</td>
-						<td scope="row">{{ entry.status.replace('_', ' ').capitalize() }}</td>
 						<td scope="row">
-							<a href={{ entry.url }} target='__blank'>{{ entry.title }}</a><br>
+							<h6>{{ entry.title }}</h6>
 							{% for act in entry.support %}
 							{{ act }}<br>
 							{% endfor %}
 
+						</td>
+						<td scope="row">
+							<a class="btn {% if entry.status == 'SALE_NOT_LIVE' %}btn-secondary{% elif entry.status == 'SALE_LIVE' or entry.status == 'FREE' %}btn-success{% elif entry.status == 'CANCELLED' or entry.status =='SOLD_OUT' %}btn-danger{% elif entry.status == 'MOVED' or entry.status == 'FEW_TICKETS' %}btn-warning{% else %}btn-primary{% endif %}" href={{ entry.url }} target='__blank'>
+								{{ entry.status.replace('_', ' ').capitalize() }}
+							</a>
 						</td>
 						<td scope="row">{{ entry.subtitle }}</td>
 						<!--<td scope="row">-->
