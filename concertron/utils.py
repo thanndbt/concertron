@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from io import BytesIO
 import requests
+from PIL import Image
 
 settings = get_project_settings()
 
@@ -29,8 +30,33 @@ def download_image(url, _id):
         r = requests.get(url)
         r.raise_for_status()
         b = BytesIO(r.content).read()
-        with open(str('./img/'+_id), "wb") as file:
-            file.write(b)
+
+        with BytesIO(r.content) as b:
+            img = Image.open(b)
+            
+            target_aspect_ratio = 206/140
+            original_width, original_height = img.size
+            original_aspect_ratio = original_width / original_height
+            if original_aspect_ratio <= target_aspect_ratio:
+                target_height = int(original_width / target_aspect_ratio)
+                height_diff = (original_height - target_height) // 2
+
+                left = 0
+                top = height_diff
+                right = original_width
+                bottom = original_height - height_diff
+                coordinates = (left, top, right, bottom)
+            else:
+                target_width = int(original_height / (1/target_aspect_ratio))
+                width_diff = (original_width - target_width ) // 2
+
+                left = width_diff
+                top = 0
+                right = original_width - width_diff
+                bottom = original_height
+                coordinates = (left, top, right, bottom)
+            new = img.crop(coordinates)
+            new.save(str('./img/' + _id + '.webp'), format="WEBP")
     except requests.RequestException as e:
         print(f"Error making request to {url}: {e}")
     except Exception as e:
