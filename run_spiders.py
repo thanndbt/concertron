@@ -20,14 +20,6 @@ runner = CrawlerRunner(settings)
 
 @defer.inlineCallbacks
 def crawl():
-    # yield runner.crawl(nl_013.spiderEvents)
-    # yield runner.crawl(nl_013.spiderTags)
-    # yield runner.crawl(nl_melkweg.spider)
-    # yield runner.crawl(nl_paradiso.spiderEvents)
-    # yield runner.crawl(nl_paradiso.spiderTags)
-    # yield runner.crawl(nl_tivolivredenburg.spiderEvents)
-    # yield runner.crawl(nl_tivolivredenburg.spiderTags)
-
     spiders_package = importlib.import_module("concertron.spiders")
     for importer, modname, ispkg in pkgutil.iter_modules(spiders_package.__path__):
         module = importlib.import_module(f"concertron.spiders.{modname}")
