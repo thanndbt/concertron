@@ -7,12 +7,10 @@ from scrapy.utils.project import get_project_settings
 from scrapy.utils.reactor import install_reactor
 import importlib
 import pkgutil
-
-# install_reactor('twisted.internet.asyncioreactor.AsyncioSelectorReactor')
-# asyncioreactor.install()
-
-# from concertron.spiders import nl_melkweg, nl_013, nl_paradiso, nl_tivolivredenburg
-from concertron.spiders import *
+import pymongo
+from datetime import datetime
+import os
+import shutil
 
 settings = get_project_settings()
 configure_logging(settings)
@@ -30,5 +28,21 @@ def crawl():
 
     reactor.stop()
 
-crawl()
-reactor.run()
+def clean_up():
+    client = pymongo.MongoClient(settings['MONGODB_URI'])
+    db = client[settings['MONGODB_DATABASE']]
+    collection = db[settings['MONGODB_COLLECTION']]
+    query = {'date': {'$lt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)}}
+
+    shutil.rmtree("./img/dl/full")
+
+    for _id in collection.find(query).distinct('_id'):
+        os.remove(f"./img/{_id}.webp")
+    
+    collection.delete_many(query)
+
+
+if __name__ == '__main__':
+    crawl()
+    reactor.run()
+    clean_up()
