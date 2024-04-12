@@ -8,7 +8,11 @@
 from itemadapter import ItemAdapter
 import pymongo
 from datetime import datetime
-from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem
+import os
+from PIL import Image
+from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem, ImageItem
+from scrapy.pipelines.images import ImagesPipeline
+import scrapy
 
 class ConcertronPipeline:
     def __init__(self, mongo_uri, mongo_db, collection_name):
@@ -39,8 +43,7 @@ class ConcertronPipeline:
         elif isinstance(item, ConcertronTagsItem):
             return self.process_tags(item, spider)
         else:
-            # Handle other item types or fallback to default pipeline
-            return self.default_pipeline.process_item(item, spider)
+            return item
 
     def process_new(self, item, spider):
         self.db[self.collection_name].insert_one(dict(item))
@@ -100,3 +103,48 @@ class ConcertronPipeline:
             return item
         else:
             return None
+
+class CustomImagePipeline(ImagesPipeline):
+    def get_media_requests(self, item, info):
+        if isinstance(item, ImageItem):
+            for image_url in item["image_urls"]:
+                yield scrapy.Request(image_url)
+        else:
+            return item               
+
+    def item_completed(self, results, item, info):
+        dir_base = './img/'
+        dir_dl = 'dl/'
+        if isinstance(item, ImageItem):
+            image_paths = [x["path"] for ok, x in results if ok]
+            adapter = ItemAdapter(item)
+            adapter["image_paths"] = image_paths
+            for image_path in adapter["image_paths"]:
+                with Image.open(dir_base + dir_dl + image_path) as img:
+                    target_aspect_ratio = 1.47
+                    original_width, original_height = img.size
+                    original_aspect_ratio = original_width / original_height
+                    if original_aspect_ratio <= target_aspect_ratio:
+                        target_height = int(original_width / target_aspect_ratio)
+                        height_diff = (original_height - target_height) // 2
+
+                        left = 0
+                        top = height_diff
+                        right = original_width
+                        bottom = original_height - height_diff
+                        coordinates = (left, top, right, bottom)
+                    else:
+                        target_width = int(original_height / (1/target_aspect_ratio))
+                        width_diff = (original_width - target_width ) // 2
+
+                        left = width_diff
+                        top = 0
+                        right = original_width - width_diff
+                        bottom = original_height
+                        coordinates = (left, top, right, bottom)
+                    new = img.crop(coordinates)
+                    new.save(str(dir_base + adapter['_id'] + '.webp'), format="WEBP")
+                    # os.remove(str(dir_base + dir_dl + image_path))
+                    return item
+        else:
+            return item

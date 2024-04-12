@@ -1,10 +1,10 @@
 import scrapy
-from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem
+from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem, ImageItem
 from datetime import datetime, timezone
 import json
 from html import unescape
 
-from concertron.utils import does_event_exist, download_image
+from concertron.utils import does_event_exist 
 
 class spiderEvents(scrapy.Spider):
     name = "nl_013_events"
@@ -95,8 +95,14 @@ class spiderEvents(scrapy.Spider):
         main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronNewItem(**main_data)
-        download_image(response.xpath("//img/@src").get(), main_data['_id'])
         yield event_item
+
+        image_data = {
+                'image_urls': [response.xpath("//img/@src").get()],
+                '_id': main_data['_id']
+        }
+        image_item = ImageItem(**image_data)
+        yield image_item
 
     def parse_updated(self, response):
         location_line = response.xpath("//ul[@class='relative specs_table']/li[last()]/*/text()").getall()

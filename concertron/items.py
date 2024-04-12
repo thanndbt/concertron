@@ -36,3 +36,8 @@ class ConcertronTagsItem(scrapy.Item):
     _id = scrapy.Field()
     tag = scrapy.Field()
     last_modified = scrapy.Field()
+
+class ImageItem(scrapy.Item):
+    _id = scrapy.Field()
+    image_urls = scrapy.Field()
+    image_paths = scrapy.Field()

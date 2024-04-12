@@ -63,7 +63,8 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-   "concertron.pipelines.ConcertronPipeline": 300,
+   "concertron.pipelines.ConcertronPipeline": 100,
+   "concertron.pipelines.CustomImagePipeline": 200,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -100,3 +101,5 @@ MONGODB_COLLECTION = 'events'
 MONGODB_INDEX_KEY = '_id'
 
 LOG_FILE = './loggle.lol'
+
+IMAGES_STORE = 'img/dl'
