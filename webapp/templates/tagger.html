@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.css" rel="stylesheet" crossorigin="anonymous">
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.js" crossorigin="anonymous"></script>
+		<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+		<title>Concertron Database Viewer</title>
+	</head>
+	<body>
+		<div class="container d-flex justify-content-center align-items-center " >
+			<div class="my-2">
+				<h1 id="tag">{{ tag }}</h1>
+				<form id="tag-form"> 
+					<div class="mb-3">
+						<label for="NewSpecial" class="form-label">New special tag name</label>
+						<input class="form-control" id="NewSpecial" name="new_special">
+						<label for="NewGenre" class="form-label">New genre tag name</label>
+						<input class="form-control" id="NewGenre" name="new_genre">
+						<label for="NewMeta" class="form-label">New meta tag name</label>
+						<input class="form-control" id="NewMeta" name="new_meta">
+						<div class="row my-2">
+							<div class="col">
+								<h5>Specials</h5>
+								{% for exist in specials %}
+								<div class="form-check">
+									<input class="form-check-input" name="exist_special" type="checkbox" value="{{ exist }}" id="{{ exist }}">
+									<label class="form-check-label" for="{{ exist }}">
+										{{ exist }}
+									</label>
+								</div>
+								{% endfor %}
+							</div>
+							<div class="col">
+								<h5>Genre</h5>
+								{% for exist in genres %}
+								<div class="form-check">
+									<input class="form-check-input" name="exist_genre" type="checkbox" value="{{ exist }}" id="{{ exist }}">
+									<label class="form-check-label" for="{{ exist }}">
+										{{ exist }}
+									</label>
+								</div>
+								{% endfor %}
+							</div>
+							<div class="col">
+								<h5>Meta</h5>
+								{% for exist in metas %}
+								<div class="form-check">
+									<input class="form-check-input" name="exist_meta" type="checkbox" value="{{ exist }}" id="{{ exist }}">
+									<label class="form-check-label" for="{{ exist }}">
+										{{ exist }}
+									</label>
+								</div>
+								{% endfor %}
+							</div>
+							<button type="submit" id="next-btn" class="btn btn-primary my-2">Next</button>
+						</div>
+				</form>
+					</div>
+			</div>
+			<!-- Add Bootstrap JS script link here -->
+			<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+			<script>
+				$(document).ready(function() {
+					$('#tag-form').submit(function(event) {
+						event.preventDefault();
+						var formData = $(this).serializeArray();
+						var form = $(this);
+						$.ajax({
+							type: 'POST',
+							url: '/tagger/submit',
+							data: formData,
+							success: function(response) {
+								$('#tag').text(response.tag);
+								form.trigger('reset');
+							}
+						});
+					});
+				});
+			</script>
+	</body>
+</html>
