@@ -146,7 +146,6 @@ class spiderEvents(scrapy.Spider):
                 'support': self.fetch_support(response), # Should be list, if no support, then just []
                 'date': self.fetch_datetime(response),
                 'location': self.fetch_location(response), 
-                'venue_id': self.venue_id, # Should not have to change
                 'last_check': datetime.now(),
                 }
 
