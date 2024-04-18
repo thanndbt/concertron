@@ -43,7 +43,7 @@ class spider(scrapy.Spider):
                 return 'CANCELLED'
             elif button == 'Free':
                 return 'FREE'
-            elif page.css('li.styles_ticket-prices__presale-text__2ljIp'):
+            elif page.css('li.styles_ticket-prices__presale-text__2ljIp') or button == 'Private':
                 return 'SALE_NOT_LIVE'
             else:
                 return 'UNKNOWN'
