@@ -42,7 +42,7 @@ def filter_data():
                     filter['$or'] = [{'status': status} for status in checked]
         elif key == 'date':
             if value:
-                filter['date'] = {'$gt': datetime.fromisoformat(value)}
+                filter['date'] = {'$gt': datetime.fromisoformat(value).replace(hour=0, minute=0, second=0, microsecond=0)}
         elif value != "NO_FILTER":
             filter[key] = value
 
