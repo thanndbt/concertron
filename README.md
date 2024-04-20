@@ -13,6 +13,7 @@ No measures have been taken to secure this project yet.
 - [x] **Melkweg** - Amsterdam, NL
 - [x] **Paradiso** - Amsterdam, NL
 - [x] **TivoliVredenburg** - Utrecht, NL
+- [x] **Effenaar** - Eindhoven, NL
 
 ## Web app
 
