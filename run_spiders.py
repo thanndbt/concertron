@@ -34,10 +34,12 @@ def clean_up():
     collection = db[settings['MONGODB_COLLECTION']]
     query = {'date': {'$lt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)}}
 
-    shutil.rmtree("./img/dl/full")
+    if os.path.exists("./img/dl/full"):
+        shutil.rmtree("./img/dl/full")
 
     for _id in collection.find(query).distinct('_id'):
-        os.remove(f"./img/{_id}.webp")
+        if os.path.exists(f"./img/{_id}.webp"):
+            os.remove(f"./img/{_id}.webp")
     
     collection.delete_many(query)
 
