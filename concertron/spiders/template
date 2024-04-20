@@ -1,5 +1,5 @@
 import scrapy
-from concertron.items import ConcertronNewItem, ConcertronUpdatedItem
+from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ImageItem
 from datetime import datetime, timezone
 from concertron.utils import does_event_exist
 
@@ -46,27 +46,34 @@ class spider(scrapy.Spider):
                 yield scrapy.Request(url=str('https://' + allowed_domains[0] + show_url), callback=self.parse_updated, meta={'main_data': main_data})
 
     def parse_new(self, response):
+        main_data = response.meta['main_data']
         additional_data = {
                 'event_type': , # Str
+                'lineup': support + main_data.get('title').split(' + '),
                 'url': , # Str, full url. could be as simple as response.url
                 'venue_id': self.name, # Should not have to change
                 'last_check': datetime.now(),
                 'last_modified': datetime.now(),
                 }
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronNewItem(**main_data)
         yield event_item
 
+        image_data = {
+                'image_urls': [response.xpath("//img/@src").get()],
+                '_id': main_data['_id']
+        }
+        image_item = ImageItem(**image_data)
+        yield image_item
+
     def parse_updated(self, response):
+        main_data = response.meta['main_data']
         additional_data = {
                 'event_type': , # Str
-                'url': , # Str, full url. could be as simple as response.url
-                'venue_id': self.name, # Should not have to change
+                'lineup': support + main_data.get('title').split(' + '),
                 'last_check': datetime.now(),
         }
 
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronUpdatedItem(**main_data)
         yield event_item
