@@ -75,14 +75,17 @@ class spiderEvents(scrapy.Spider):
                 yield scrapy.Request(url=show_url, callback=self.parse_updated, meta={'main_data': main_data})
 
     def parse_new(self, response):
+        main_data = response.meta['main_data']
         location_line = response.xpath("//ul[@class='relative specs_table']/li[last()]/*/text()").getall()
         venue_name = '013'
         town = 'Tilburg, NL'
         connector = ', '
         base_location = connector.join([venue_name, town])
+        support = response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]/li/text()').getall() if response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]') else []
         additional_data = {
                 'event_type': 'Festival' if 'festival' in ' '.join(response.xpath("//h1/text()").getall()).lower() else 'Concert',
-                'support': response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]/li/text()').getall() if response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]') else [],
+                'support': support,
+                'lineup': support + main_data.get('title').split(' + '),
                 'location': connector.join([location_line[1], base_location]) if location_line[0] == 'Zaal' else (connector.join([location_line[1], town]) if location_line[0] == 'Locatie' else venue),
                 'url': response.url,
                 'tags': [],
@@ -92,7 +95,6 @@ class spiderEvents(scrapy.Spider):
                 'last_modified': datetime.now(),
         }
 
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronNewItem(**main_data)
         yield event_item
@@ -105,18 +107,20 @@ class spiderEvents(scrapy.Spider):
         yield image_item
 
     def parse_updated(self, response):
+        main_data = response.meta['main_data']
         location_line = response.xpath("//ul[@class='relative specs_table']/li[last()]/*/text()").getall()
         venue_name = '013'
         town = 'Tilburg, NL'
         connector = ', '
         base_location = connector.join([venue_name, town])
+        support = response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]/li/text()').getall() if response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]') else []
         additional_data = {
-                'support': response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]/li/text()').getall() if response.xpath('//article//ul[@class="mt-1 flex flex-wrap gap-2 heading-din text-xs md:text-lead"]') else [],
+                'support': support,
+                'lineup': support + main_data.get('title').split(' + '),
                 'location': connector.join([location_line[1], base_location]) if location_line[0] == 'Zaal' else (connector.join([location_line[1], town]) if location_line[0] == 'Locatie' else venue),
                 'status': self.check_status(response, response.url),
                 'last_check': datetime.now(),
         }
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
 
         event_item = ConcertronUpdatedItem(**main_data)

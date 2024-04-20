@@ -83,9 +83,12 @@ class spider(scrapy.Spider):
                 yield scrapy.Request(url=str('https://www.melkweg.nl' + show_url), callback=self.parse_updated, meta={'main_data': main_data})
 
     def parse_new(self, response):
+        main_data = response.meta['main_data']
+        support = self.fetch_support(response)
         additional_data = {
                 'event_type': response.css('ul.styles_event-header__profiles-list__igpuv ::text').get(),
-                'support': self.fetch_support(response),
+                'support': support,
+                'lineup': support + main_data.get('title').split(': ')[-1].split(' / '),
                 'date': datetime.fromisoformat(response.css('time ::attr(datetime)').get().replace('Z', '+00:00')).astimezone(timezone.utc).replace(tzinfo=None),
                 'location': str(response.css('span.styles_event-header__location__jvvG4 ::text').get().strip() + ', Melkweg, Amsterdam, NL'),
                 'status': self.check_status(response, 'event'),
@@ -95,10 +98,8 @@ class spider(scrapy.Spider):
                 'last_modified': datetime.now(),
         }
 
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronNewItem(**main_data)
-        # download_image(response.xpath("//figure/img/@srcset").get().split(', ')[-1].split(' ')[0], main_data['_id'])
         yield event_item
 
         image_data = {
@@ -109,14 +110,16 @@ class spider(scrapy.Spider):
         yield image_item
 
     def parse_updated(self, response):
+        main_data = response.meta['main_data']
+        support = self.fetch_support(response)
         additional_data = {
                 'support': self.fetch_support(response),
+                'lineup': support + main_data.get('title').split(': ')[-1].split(' / '),
                 'date': datetime.fromisoformat(response.css('time ::attr(datetime)').get().replace('Z', '+00:00')).astimezone(timezone.utc).replace(tzinfo=None),
                 'location': str(response.css('span.styles_event-header__location__jvvG4 ::text').get().strip() + ', Melkweg, Amsterdam, NL'),
                 'status': self.check_status(response, 'event'),
         }
 
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronUpdatedItem(**main_data)
         yield event_item

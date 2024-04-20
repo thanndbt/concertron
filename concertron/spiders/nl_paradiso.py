@@ -42,6 +42,7 @@ class spiderEvents(scrapy.Spider):
                     # 'status': show.get('soldOut'), # Just for reference
                     'status': self.check_status(show), # Just for reference
                     }
+            main_data['lineup'] = main_data['support'] + [main_data['title']]
 
             event_status = does_event_exist(main_data.get('_id'))
             if event_status == 'EVENT_DOES_NOT_EXIST':

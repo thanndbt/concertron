@@ -88,6 +88,27 @@ class spiderEvents(scrapy.Spider):
         else:
             return base_location
 
+    def fetch_headliners(self, title):
+        colon = title.split(': ')[-1]
+        separated = colon.split(', ')
+
+        if len(separated) == 1:
+            if ' + ' in separated[0]:
+                return separated[0].split(' + ')
+            elif ' X ' in separated[0]:
+                return separated[0].split(' X ')
+            elif ' / ' in separated[0]:
+                reseparated = separated[0].split(' / ')
+                if ' & ' in reseparated[-1]:
+                    return reseparated[:-1] + reseparated[-1].split(' & ')
+                else:
+                    return reseparated
+            else:
+                return separated
+        else:
+            last = separated[-1].split(' & ')
+            return separated[:-1] + last if len(separated) > 1 and ' & ' in separated[-1] else separated
+
     def parse(self, response):
         for show in response.css('li.agenda-list-item'):
             show_url = show.css('a.link ::attr(href)').get()
@@ -119,9 +140,11 @@ class spiderEvents(scrapy.Spider):
 
     def parse_new(self, response):
         main_data = response.meta['main_data']
+        support = self.fetch_support(response)
         additional_data = {
                 'event_type': self.check_event_type(response), # Str
-                'support': self.fetch_support(response), # Should be list, if no support, then just []
+                'support': support, # Should be list, if no support, then just []
+                'lineup': support + self.fetch_headliners(main_data.get('title')),
                 'date': self.fetch_datetime(response),
                 'location': self.fetch_location(response), 
                 'tags': [],
@@ -142,14 +165,16 @@ class spiderEvents(scrapy.Spider):
         yield image_item
 
     def parse_updated(self, response):
+        main_data = response.meta['main_data']
+        support = self.fetch_support(response)
         additional_data = {
-                'support': self.fetch_support(response), # Should be list, if no support, then just []
+                'support': support, # Should be list, if no support, then just []
+                'lineup': support + self.fetch_headliners(main_data.get('title')),
                 'date': self.fetch_datetime(response),
                 'location': self.fetch_location(response), 
                 'last_check': datetime.now(),
                 }
 
-        main_data = response.meta['main_data']
         main_data.update(additional_data)
         event_item = ConcertronUpdatedItem(**main_data)
         yield event_item

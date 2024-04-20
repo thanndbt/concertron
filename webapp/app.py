@@ -43,6 +43,11 @@ def filter_data():
         elif key == 'date':
             if value:
                 filter['date'] = {'$gt': datetime.fromisoformat(value).replace(hour=0, minute=0, second=0, microsecond=0)}
+            else:
+                filter['date'] = {'$gt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)}
+        elif key == 'lineup':
+            if value:
+                filter['lineup'] = {'$regex': value, '$options': 'i'}
         elif value != "NO_FILTER":
             filter[key] = value
 

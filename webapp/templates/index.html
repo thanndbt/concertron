@@ -13,6 +13,15 @@
 			<h1>Concertron Database Viewer</h1>
 			<form action="/filter" method="post">
 				<div class="mb-3">
+					<label for="lineup" class="form-label">Artist</label>
+					<input class="form-control" list="artists" id="lineup" name="lineup" placeholder="Type to search...">
+					<datalist id="artists">
+						{% for artist in collection.distinct('lineup') %}
+						<option value="{{ artist }}">
+						{% endfor %}
+					</datalist>
+				</div>
+				<div class="mb-3">
 					<label for="venue_id" class="form-label">Venue</label>
 					<select name="venue_id" class="form-control">
 						<option value="NO_FILTER">All</option>
