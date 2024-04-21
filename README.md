@@ -10,10 +10,11 @@ No measures have been taken to secure this project yet.
 ## Venues
 
 - [x] **013** - Tilburg, NL
+- [x] **Effenaar** - Eindhoven, NL
 - [x] **Melkweg** - Amsterdam, NL
 - [x] **Paradiso** - Amsterdam, NL
+- [x] **Patronaat** - Haarlem, NL
 - [x] **TivoliVredenburg** - Utrecht, NL
-- [x] **Effenaar** - Eindhoven, NL
 
 ## Web app
 
