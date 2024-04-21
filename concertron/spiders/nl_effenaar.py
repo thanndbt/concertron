@@ -59,7 +59,7 @@ class spider(scrapy.Spider):
         for show in agenda: 
             subtitle, support = self.split_subtitle(show.get('subtitle'))
             main_data = { 
-                    '_id': str(self.name + show.get('slug').split('/')[-1] + '-' + show.get('objectID').split('/')[-1].split(':')[0]),
+                    '_id': str(self.name + '-' + show.get('slug').split('/')[-1] + '-' + show.get('objectID').split('/')[-1].split(':')[0]),
                     'title': show.get('title').strip(),
                     'subtitle': subtitle,
                     'support': support,
