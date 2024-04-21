@@ -1,7 +1,7 @@
 import scrapy
 from concertron.items import ConcertronNewItem, ConcertronUpdatedItem, ConcertronTagsItem, ImageItem
 from datetime import datetime, timezone
-from concertron.utils import does_event_exist
+from concertron.utils import does_event_exist, construct_datetime
 
 
 class spiderEvents(scrapy.Spider):
@@ -63,16 +63,6 @@ class spiderEvents(scrapy.Spider):
                 return []
         else:
             return []
-
-    def fetch_datetime(self, response):
-        months = {'jan': 1, 'feb': 2, 'mrt': 3, 'apr': 4, 'mei': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'okt': 10, 'nov': 11, 'dec': 12}
-        all_times = response.xpath('//div[@class="lane  lane--event"]//time/text()').getall()
-        date = all_times[-1].strip().split(' ')
-        if len(all_times) == 1:
-            return datetime(int(date[-1]), months.get(date[-2]), int(date[-3])).astimezone(timezone.utc).replace(tzinfo=None)
-        else:
-            time = all_times[0].split(':')
-            return datetime(int(date[-1]), months.get(date[-2]), int(date[-3]), int(time[0]), int(time[1])).astimezone(timezone.utc).replace(tzinfo=None)
 
     def fetch_location(self, response):
         # We like readable stuff. Location line would not have been readable :(
@@ -141,11 +131,17 @@ class spiderEvents(scrapy.Spider):
     def parse_new(self, response):
         main_data = response.meta['main_data']
         support = self.fetch_support(response)
+        all_times = response.xpath('//div[@class="lane  lane--event"]//time/text()').getall()
+        datefield = all_times[-1]
+        timefield = None
+        if len(all_times) > 1:
+            timefield = all_times[0]
+        
         additional_data = {
                 'event_type': self.check_event_type(response), # Str
                 'support': support, # Should be list, if no support, then just []
                 'lineup': support + self.fetch_headliners(main_data.get('title')),
-                'date': self.fetch_datetime(response),
+                'date': construct_datetime('nl', datefield, timefield),
                 'location': self.fetch_location(response), 
                 'tags': [],
                 'url': response.url, # Str, full url. could be as simple as response.url
@@ -167,10 +163,16 @@ class spiderEvents(scrapy.Spider):
     def parse_updated(self, response):
         main_data = response.meta['main_data']
         support = self.fetch_support(response)
+        all_times = response.xpath('//div[@class="lane  lane--event"]//time/text()').getall()
+        datefield = all_times[-1]
+        timefield = None
+        if len(all_times) > 1:
+            timefield = all_times[0]
+
         additional_data = {
                 'support': support, # Should be list, if no support, then just []
                 'lineup': support + self.fetch_headliners(main_data.get('title')),
-                'date': self.fetch_datetime(response),
+                'date': construct_datetime('nl', datefield, timefield),
                 'location': self.fetch_location(response), 
                 'last_check': datetime.now(),
                 }
