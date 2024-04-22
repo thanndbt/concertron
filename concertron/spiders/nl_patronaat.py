@@ -93,8 +93,8 @@ class spider(scrapy.Spider):
         
         festival_lineup = response.xpath("//div[contains(@class, 'event__support--festival')]//div[@class='event__support-act--info']/h2/text()").getall()
         if festival_lineup:
-            main_data['support'] += festival_lineup
-            main_data['lineup'] += festival_lineup
+            main_data['support'] += list(map(str.strip, festival_lineup))
+            main_data['lineup'] += list(map(str.strip, festival_lineup))
             main_data['event_type'] = 'Festival'
 
         event_item = ConcertronNewItem(**main_data)
@@ -121,8 +121,8 @@ class spider(scrapy.Spider):
 
         festival_lineup = response.xpath("//div[contains(@class, 'event__support--festival')]//div[@class='event__support-act--info']/h2/text()").getall()
         if festival_lineup:
-            main_data['support'] += festival_lineup
-            main_data['lineup'] += festival_lineup
+            main_data['support'] += list(map(str.strip, festival_lineup))
+            main_data['lineup'] += list(map(str.strip, festival_lineup))
 
         event_item = ConcertronUpdatedItem(**main_data)
         yield event_item
