@@ -17,12 +17,15 @@ class spiderEvents(scrapy.Spider):
         if url.split('/')[-1] == 'programma':
             label = response.xpath('.//div[@class="ribbon_basic ribbon_small"]//text()').get()
             if label:
-                if label == 'Uitverkocht':
+                label_text = label.strip()
+                if label_text == 'Uitverkocht':
                     return 'SOLD_OUT'
-                elif label == 'Laatste kaarten':
+                elif label_text == 'Laatste kaarten':
                     return 'FEW_TICKETS'
-                elif label == 'Afgelast': # Could be different
+                elif label_text == 'Afgelast': # Could be different
                     return 'CANCELLED'
+                elif label_text == 'Verplaatst':
+                    return 'MOVED'
             else:
                 return None
         # Checks status based on things on the event page
@@ -42,6 +45,8 @@ class spiderEvents(scrapy.Spider):
                     return 'FEW_TICKETS'
                 elif button_text == 'Afgelast': # Could be different, no way to tell right now
                     return 'CANCELLED'
+                elif button_text == 'Verplaatst':
+                    return 'MOVED'
             # Free events and some sale_not_live cases do not have a button. This is based on the data in thetablew on the side
             elif price_table:
                 price = price_table.xpath('.//b/text()').get()
