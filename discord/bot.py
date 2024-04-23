@@ -1,5 +1,6 @@
 import discord
 import pymongo
+from datetime import datetime
 import keys
 
 intents = discord.Intents.default()
@@ -21,7 +22,6 @@ def db_events_find(filter_q=None, sort_q=None):
         sort.update(sort_q)
 
     return db.events.find(filter=filter, sort=sort)
-
 
 def show_embed(item):
     file = discord.File(f"./img/{item['_id']}.webp", "image.webp")
@@ -45,10 +45,20 @@ async def search_artist(message):
         embed = show_embed(match)
         await message.channel.send(file=embed[0], embed=embed[1])
 
+async def send_updates(message):
+    filter = {'last_modified': {'$gt': db.system.find_one({'_id': 'discord'}).get('last_check')}}
+    updated = db_events_find(filter)
+    for item in updated:
+        file, embed = show_embed(item)
+        await message.channel.send(file=file, embed=embed)
+    db.system.update_one({'_id': 'discord'}, {'$set': {'last_check': datetime.now()}})
+
 client = discord.Client(intents=intents)
 db = pymongo.MongoClient('localhost:27017').concertron_test
 agenda = db_events_find()
 
+if not db.system.find_one({'_id': 'discord'}):
+    db.system.insert_one({'_id': 'discord', 'last_check': datetime.now()})
 
 @client.event
 async def on_ready():
@@ -69,6 +79,9 @@ async def on_message(message):
 
     if message.content.startswith('$artist'):
         await search_artist(message)
+
+    if message.content.startswith('$update'):
+        await send_updates(message)
 
 
 if __name__ == '__main__':
