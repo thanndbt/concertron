@@ -1,10 +1,13 @@
 import discord
+from discord.ext import tasks, commands
 import pymongo
 from datetime import datetime
-import keys
+import utils
+import logging
 
 intents = discord.Intents.default()
 intents.message_content = True
+logger = logging.FileHandler(filename='./logs/discord.log', encoding='utf-8', mode='w')
 
 def db_events_find(filter_q=None, sort_q=None):
     # Query defaults
@@ -45,13 +48,6 @@ async def search_artist(message):
         embed = show_embed(match)
         await message.channel.send(file=embed[0], embed=embed[1])
 
-async def send_updates(message):
-    filter = {'last_modified': {'$gt': db.system.find_one({'_id': 'discord'}).get('last_check')}}
-    updated = db_events_find(filter)
-    for item in updated:
-        file, embed = show_embed(item)
-        await message.channel.send(file=file, embed=embed)
-    db.system.update_one({'_id': 'discord'}, {'$set': {'last_check': datetime.now()}})
 
 client = discord.Client(intents=intents)
 db = pymongo.MongoClient('localhost:27017').concertron_test
@@ -60,9 +56,22 @@ agenda = db_events_find()
 if not db.system.find_one({'_id': 'discord'}):
     db.system.insert_one({'_id': 'discord', 'last_check': datetime.now()})
 
+@tasks.loop(minutes=1)
+async def send_updates():
+    filter = {'last_modified': {'$gt': db.system.find_one({'_id': 'discord'}).get('last_check')}}
+    updated = db_events_find(filter)
+    for item in updated:
+        file, embed = show_embed(item)
+        await home_channel.send(file=file, embed=embed)
+    db.system.update_one({'_id': 'discord'}, {'$set': {'last_check': datetime.now()}})
+
 @client.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    global home_channel
+    home_channel = client.get_channel(utils.home)
+    message = "Hello everyone! I'm here."
+    await home_channel.send(message)
+    send_updates.start()
 
 @client.event
 async def on_message(message):
@@ -85,5 +94,5 @@ async def on_message(message):
 
 
 if __name__ == '__main__':
-    client.run(keys.api)
+    client.run(utils.key, log_handler=logger, log_level=logging.DEBUG)
 

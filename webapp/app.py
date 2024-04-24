@@ -17,7 +17,7 @@ tag_list = db.events.distinct('tags', filter={'$or': [{'event_type': 'Concert'},
 def index():
     # Fetch data from MongoDB
     data = list(collection.find(filter={
-        'event_type': 'Concert',
+        '$or': [{'event_type': 'Concert'}, {'event_type': 'Club'}, {'event_type': 'Festival'}],
         'date': {'$gt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)}
         }, sort = {
             'date': 1
@@ -29,7 +29,7 @@ def index():
 def filter_data():
     print(request.form.get('date'), str(type(request.form.get('date'))))
     filter = {
-            'event_type': 'Concert',
+            '$or': [{'event_type': 'Concert'}, {'event_type': 'Club'}, {'event_type': 'Festival'}],
             'date': {'$gt': datetime.now()}
             }
     for key, value in request.form.items():
