@@ -16,7 +16,9 @@ def db_events_find(filter_q=None, sort_q=None):
                 {'event_type': 'Concert'},
                 {'event_type': 'Festival'},
                 {'event_type': 'Club'}
-                ]}
+                ],
+            'date': {'$gt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)},
+            }
     sort = {'date': 1}
 
     if filter_q:
@@ -26,7 +28,7 @@ def db_events_find(filter_q=None, sort_q=None):
 
     return db.events.find(filter=filter, sort=sort)
 
-def show_embed(item):
+def show_embed(item): # Item is a MongoDB document/dict
     file = discord.File(f"./img/{item['_id']}.webp", "image.webp")
     embed = discord.Embed(
             title = item['title'],
@@ -38,7 +40,6 @@ def show_embed(item):
     if item['support']:
         embed.add_field(name='Support', value='\n'.join(item['support']))
     embed.add_field(name='Status', value=' '.join(item['status'].split('_')).capitalize())
-    embed.set_author(name=item['venue_id'].split('_')[-1].capitalize())
     embed.set_image(url="attachment://image.webp")
     return file, embed
 
@@ -56,12 +57,17 @@ agenda = db_events_find()
 if not db.system.find_one({'_id': 'discord'}):
     db.system.insert_one({'_id': 'discord', 'last_check': datetime.now()})
 
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=5)
 async def send_updates():
     filter = {'last_modified': {'$gt': db.system.find_one({'_id': 'discord'}).get('last_check')}}
     updated = db_events_find(filter)
     for item in updated:
         file, embed = show_embed(item)
+        if item['updates'] == 'new':
+            embed.set_author(name="New event")
+        elif isinstance(item['updates'], list) and len(item['updates']) > 0:
+            head_text = "Update: " + ', '.join(item['updates'])
+            embed.set_author(name=head_text)
         await home_channel.send(file=file, embed=embed)
     db.system.update_one({'_id': 'discord'}, {'$set': {'last_check': datetime.now()}})
 
@@ -90,7 +96,7 @@ async def on_message(message):
         await search_artist(message)
 
     if message.content.startswith('$update'):
-        await send_updates(message)
+        await send_updates()
 
 
 if __name__ == '__main__':
