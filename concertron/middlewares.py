@@ -3,8 +3,7 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-from scrapy import signals
-
+import scrapy
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
 
@@ -18,7 +17,7 @@ class ConcertronSpiderMiddleware:
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.spider_opened, signal=scrapy.signals.spider_opened)
         return s
 
     def process_spider_input(self, response, spider):
@@ -65,7 +64,7 @@ class ConcertronDownloaderMiddleware:
     def from_crawler(cls, crawler):
         # This method is used by Scrapy to create your spiders.
         s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.spider_opened, signal=scrapy.signals.spider_opened)
         return s
 
     def process_request(self, request, spider):
@@ -81,13 +80,29 @@ class ConcertronDownloaderMiddleware:
         return None
 
     def process_response(self, request, response, spider):
+        if response.status == 307:
+            redirected_url = response.headers['Location'].decode('utf-8')
+            redirected_request = request.replace(url=redirected_url)
+            return self._retry_or_redirect(redirected_request, spider)
+        return response
+
+    def _retry_or_redirect(self, request, spider):
+        if spider.settings.getbool('RETRY_ENABLED'):
+            # Retry the request with the new URL
+            retryreq = request.copy()
+            retryreq.dont_filter = True
+            return retryreq
+        else:
+            # Redirect the request to the new URL
+            return request
+
+        return response
         # Called with the response returned from the downloader.
 
         # Must either;
         # - return a Response object
         # - return a Request object
         # - or raise IgnoreRequest
-        return response
 
     def process_exception(self, request, exception, spider):
         # Called when a download handler or a process_request()
