@@ -8,7 +8,7 @@ from scrapy.utils.project import get_project_settings
 import importlib
 import pkgutil
 import pymongo
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import shutil
 
@@ -33,7 +33,7 @@ def crawl():
     db.system.update_one({'_id': 'scraper'}, {'$set': {'last_run': datetime.now()}}, upsert=True)
 
 def clean_up():
-    query = {'date': {'$lt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)}}
+    query = {'date': {'$lt': datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)-timedelta(days=1)}}
 
     if os.path.exists("./img/dl/full"):
         shutil.rmtree("./img/dl/full")
@@ -43,7 +43,6 @@ def clean_up():
             os.remove(f"./img/{_id}.webp")
     
     db.events.delete_many(query)
-
 
 if __name__ == '__main__':
     crawl()
