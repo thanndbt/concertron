@@ -21,6 +21,7 @@ class ConcertronNewItem(scrapy.Item):
     venue_id = scrapy.Field()
     last_check = scrapy.Field()
     last_modified = scrapy.Field()
+    updates = scrapy.Field()
 
 class ConcertronUpdatedItem(scrapy.Item):
     _id = scrapy.Field()
@@ -33,6 +34,7 @@ class ConcertronUpdatedItem(scrapy.Item):
     tags = scrapy.Field()
     status = scrapy.Field()
     last_check = scrapy.Field()
+    updates = scrapy.Field()
 
 class ConcertronTagsItem(scrapy.Item):
     _id = scrapy.Field()

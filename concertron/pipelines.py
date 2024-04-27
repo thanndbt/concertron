@@ -46,7 +46,9 @@ class ConcertronPipeline:
             return item
 
     def process_new(self, item, spider):
-        self.db[self.collection_name].insert_one(dict(item))
+        entry = item
+        entry['updates'] ='new'
+        self.db[self.collection_name].insert_one(dict(entry))
         return item
 
     def process_update(self, item, spider):
@@ -59,6 +61,7 @@ class ConcertronPipeline:
 
         # Process the updated item if relevant fields have changed
         if fields_changed:
+            fields_changed['updates'] = list(fields_changed.keys())
             # Process the updated item as needed
             # Example: Update the existing item in the database
             if item.get('last_check'):
@@ -67,7 +70,7 @@ class ConcertronPipeline:
             self.db[self.collection_name].update_one({'_id': item['_id']}, {'$set': fields_changed})
             return item
         elif item.get('last_check') and not fields_changed:
-            self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'last_check': item.get('last_check')}})
+            self.db[self.collection_name].update_one({'_id': item.get('_id')}, {'$set': {'last_check': item.get('last_check'), 'updates': []}})
             return None
         else:
             # Skip processing if relevant fields have not changed and no deep check was done
@@ -110,7 +113,7 @@ class CustomImagePipeline(ImagesPipeline):
             for image_url in item["image_urls"]:
                 yield scrapy.Request(image_url)
         else:
-            return item               
+            return item
 
     def item_completed(self, results, item, info):
         dir_base = './img/'
