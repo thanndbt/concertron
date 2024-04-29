@@ -12,4 +12,4 @@ __pycache__/
 # No img
 img/
 
-discord/utils.py
+discord/keys.py
