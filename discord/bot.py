@@ -1,6 +1,7 @@
 import discord
 from discord.ext import tasks, commands
 import logging
+from asyncio import sleep
 
 # local modules
 import utils
@@ -42,7 +43,8 @@ async def send_updates():
         await message.add_reaction("❤️")
         # for i, artist in enumerate(item['lineup'], 0):
             # await message.add_reaction(emojis[i])
-        events.write_success()
+        await sleep(0.5)
+    events.write_success()
 
 @client.event
 async def on_ready():

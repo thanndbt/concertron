@@ -36,8 +36,15 @@ def write_success():
     db.system.update_one({'_id': 'discord'}, {'$set': {'last_check': datetime.now()}}) # Just as a flag
 
 async def search_artist(message): # Search for artist in lineup fields in documents. TO-DO: no text appended should send a warning message. Rn it just sends ALL acts and needs to be killed inb4 rate limit
-    results = find_events({'lineup': {'$regex': message.content.split('$artist')[1].strip(), '$options': 'i'}})
-    for match in results:
-        sent = await message.channel.send(**utils.show_embed(match))
-        await sent.add_reaction("❤️")
+    content = message.content.split('$artist')[1].strip()
+    if content:
+        results = find_events({'lineup': {'$regex': content, '$options': 'i'}})
+        if len(list(results.clone())) > 0:
+            for match in results:
+                sent = await message.channel.send(**utils.show_embed(match))
+                await sent.add_reaction("❤️")
+        else:
+            await message.channel.send(f"No events found containing *{content}*")
+    else:
+        await message.channel.send(f"{message.author.mention} Please specify an artist like so: *$artist Red Hot Chili Peppers*")
 
