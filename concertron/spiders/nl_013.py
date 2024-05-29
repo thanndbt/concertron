@@ -8,7 +8,7 @@ from concertron.utils import does_event_exist
 
 class spiderEvents(scrapy.Spider):
     name = "nl_013_events"
-    allowed_domains = ["013.nl"]
+    allowed_domains = ["013.nl", "013.ams3.cdn.digitaloceanspaces.com"]
     start_urls = ["https://013.nl/programma"]
     venue_id = 'nl_013'
 

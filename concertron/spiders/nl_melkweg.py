@@ -5,7 +5,7 @@ from concertron.utils import does_event_exist
 
 class spider(scrapy.Spider):
     name = "nl_melkweg"
-    allowed_domains = ["www.melkweg.nl"]
+    allowed_domains = ["www.melkweg.nl", "assets.melkweg.nl"]
     start_urls = ["https://www.melkweg.nl/en/agenda/"]
 
     def determine_separator(self, data): # This determines what separator to use. Built around the varying way Melkweg lists lineups and support acts.

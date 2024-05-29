@@ -6,7 +6,7 @@ from concertron.utils import does_event_exist, construct_datetime
 
 class spiderEvents(scrapy.Spider):
     name = "nl_tivolivredenburg_events"
-    allowed_domains = ["www.tivolivredenburg.nl"]
+    allowed_domains = ["www.tivolivredenburg.nl", "salesforcedam.blob.core.windows.net"]
     start_urls = ["https://www.tivolivredenburg.nl/agenda"]
     venue_id = 'nl_tivolivredenburg'
 
@@ -116,7 +116,7 @@ class spiderEvents(scrapy.Spider):
                 yield event_item
             elif event_status == "EVENT_UPDATE":
                 yield scrapy.Request(url=show_url, callback=self.parse_updated, meta={'main_data': main_data})
-        if len(response.css('li.agenda-list-item')) == 50 and 'page' not in response.url:
+        if len(response.css('li.agenda-list-item')) == 20 and 'page' not in response.url:
             yield scrapy.Request(url=str(self.start_urls[0] + '/page/2'), callback=self.parse)
         else:
             max_page = int(response.xpath('//title/text()').get().split(' - ')[1].split()[-1])

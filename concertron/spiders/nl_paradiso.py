@@ -7,7 +7,7 @@ from concertron.utils import does_event_exist
 
 class spiderEvents(scrapy.Spider):
     name = "nl_paradiso_events"
-    allowed_domains = ["knwxh8dmh1.execute-api.eu-central-1.amazonaws.com"]
+    allowed_domains = ["knwxh8dmh1.execute-api.eu-central-1.amazonaws.com", "assets.paradiso.nl"]
     start_urls = ["https://knwxh8dmh1.execute-api.eu-central-1.amazonaws.com/graphql"]
     venue_id = 'nl_paradiso'
 
