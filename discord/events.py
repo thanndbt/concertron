@@ -2,7 +2,7 @@ import pymongo
 from datetime import datetime
 import utils
 
-client = pymongo.MongoClient('localhost:27017')
+client = pymongo.MongoClient('mongodb://concertron-mongodb:27017')
 db = client['concertron_test']
 
 def db_init(): # Makes sure a last_check field is set upon starting up to prevent a clean setup blasting all events everywhere (that would be a lot)

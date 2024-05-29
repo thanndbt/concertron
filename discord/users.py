@@ -2,7 +2,7 @@ import pymongo
 from datetime import datetime
 import utils
 
-client = pymongo.MongoClient('localhost:27017')
+client = pymongo.MongoClient('mongodb://concertron-mongodb:27017')
 db = client['concertron_test']
 
 async def create_user(_id, artists=[], tags=[], events=[], notify_all=False):

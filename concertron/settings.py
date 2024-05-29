@@ -94,7 +94,7 @@ REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.epollreactor.EPollReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
-MONGODB_URI = 'mongodb://localhost:27017/'
+MONGODB_URI = 'mongodb://concertron-mongodb:27017/'
 MONGODB_DATABASE = 'concertron_test'
 # MONGODB_COLLECTION = 'events'
 MONGODB_COLLECTION = 'events'

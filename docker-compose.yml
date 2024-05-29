@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: docker.io/library/mongo:latest
+    container_name: concertron-mongodb
+    ports:
+      - "27017:27017"
+
+  scrapy:
+    image: concertron-scrapy-img
+    container_name: concertron-scrapy
+    depends_on:
+      - mongodb
+    volumes:
+      - /home/thann/misc/concertron/img:/app/img   # Map host directory to container directory
+      - /home/thann/misc/concertron/logs:/app/logs
+
+  discord-bot:
+    image: concertron-discord-img
+    container_name: concertron-discord
+    depends_on:
+      - mongodb
+    volumes:
+      - /home/thann/misc/concertron/img:/app/img   # Map host directory to container directory
+      - /home/thann/misc/concertron/logs:/app/logs
+
+networks:
+  default:
+    driver: bridge
+
