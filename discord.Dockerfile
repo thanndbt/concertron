@@ -10,9 +10,6 @@ COPY requirements.txt .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the Discord bot code into the container
-COPY . .
-
 # Set the command to run the Discord bot
 CMD ["python", "/app/discord/bot.py"]
 

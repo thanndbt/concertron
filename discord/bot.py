@@ -68,7 +68,7 @@ async def on_reaction_add(reaction, user):
             if user_profile: #If profile exists, add it
                 await users.update_user(user.id, event['_id'], event['lineup'], event['tags'])
             else: # If not, create profile and add information to it
-                await create_user(user.id, [event['_id']], event['lineup'], event['tags'])
+                await users.create_user(user.id, [event['_id']], event['lineup'], event['tags'])
 
             await user.send(f"{event['title']} has been added to your watchlist")
 

@@ -100,6 +100,6 @@ MONGODB_DATABASE = 'concertron_test'
 MONGODB_COLLECTION = 'events'
 MONGODB_INDEX_KEY = '_id'
 
-LOG_FILE = './loggle.lol'
+LOG_FILE = 'logs/scrapy.log'
 
 IMAGES_STORE = 'img/dl'

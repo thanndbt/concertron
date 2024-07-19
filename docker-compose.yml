@@ -13,8 +13,7 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - /home/thann/misc/concertron/img:/app/img   # Map host directory to container directory
-      - /home/thann/misc/concertron/logs:/app/logs
+      - /home/concertron/concertron:/app
 
   discord-bot:
     image: concertron-discord-img
@@ -22,8 +21,7 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - /home/thann/misc/concertron/img:/app/img   # Map host directory to container directory
-      - /home/thann/misc/concertron/logs:/app/logs
+      - /home/concertron/concertron:/app
 
 networks:
   default:
