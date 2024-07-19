@@ -1,1 +1,0 @@
-0 2,6,10,14,18,22 * * * root /usr/bin/python /app/run_spiders.py

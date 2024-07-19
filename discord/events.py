@@ -3,7 +3,7 @@ from datetime import datetime
 import utils
 
 client = pymongo.MongoClient('mongodb://concertron-mongodb:27017')
-db = client['concertron_test']
+db = client['concertron']
 
 def db_init(): # Makes sure a last_check field is set upon starting up to prevent a clean setup blasting all events everywhere (that would be a lot)
     if not db.system.find_one({'_id': 'discord'}):

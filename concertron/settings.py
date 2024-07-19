@@ -95,7 +95,7 @@ TWISTED_REACTOR = "twisted.internet.epollreactor.EPollReactor"
 FEED_EXPORT_ENCODING = "utf-8"
 
 MONGODB_URI = 'mongodb://concertron-mongodb:27017/'
-MONGODB_DATABASE = 'concertron_test'
+MONGODB_DATABASE = 'concertron'
 # MONGODB_COLLECTION = 'events'
 MONGODB_COLLECTION = 'events'
 MONGODB_INDEX_KEY = '_id'

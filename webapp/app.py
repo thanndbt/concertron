@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # MongoDB connection
 client = MongoClient('mongodb://concertron-mongodb:27017/')
-db = client['concertron_test']  # Change this to your database name
+db = client['concertron']  # Change this to your database name
 collection = db['events']  # Change this to your collection name
 
 app.secret_key = secrets.token_hex(16)

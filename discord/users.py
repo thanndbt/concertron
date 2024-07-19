@@ -3,7 +3,7 @@ from datetime import datetime
 import utils
 
 client = pymongo.MongoClient('mongodb://concertron-mongodb:27017')
-db = client['concertron_test']
+db = client['concertron']
 
 async def create_user(_id, artists=[], tags=[], events=[], notify_all=False):
     db.discord_users.insert_one({
