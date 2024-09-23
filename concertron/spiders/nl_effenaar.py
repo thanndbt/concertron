@@ -7,7 +7,7 @@ import json
 class spider(scrapy.Spider):
     name = "nl_effenaar"
     allowed_domains = ["effenaar.nl", "d3gy47dclw6o24.cloudfront.net"]
-    start_urls = ["https://www.effenaar.nl/_next/data/pknsU4Zs6EV--qHIa_Tla/nl/agenda.json"]
+    start_urls = ["https://www.effenaar.nl/_next/data/zFvz0RV3x0fROBXwn2R8J/nl/agenda.json"]
 
     def check_status(self, state):
         if state:
